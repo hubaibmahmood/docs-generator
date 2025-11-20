@@ -1,0 +1,113 @@
+openapi: 3.0.0
+info:
+  title: Code Analysis Engine API
+  version: 1.0.0
+  description: An API for analyzing remote Git repositories.
+
+paths:
+  /analyze:
+    post:
+      summary: Start a new analysis job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  description: The full URL of the GitHub repository to analyze.
+                  example: "https://github.com/owner/repo"
+              required:
+                - url
+      responses:
+        '202':
+          description: Analysis job accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                    description: A unique ID to track the analysis task.
+        '400':
+          description: Bad request (e.g., invalid URL).
+
+  /status/{task_id}:
+    get:
+      summary: Get the status of an analysis job
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current status of the job.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [PENDING, IN_PROGRESS, SUCCESS, FAILED]
+                  message:
+                    type: string
+        '404':
+          description: Task ID not found.
+
+  /result/{task_id}:
+    get:
+      summary: Get the result of a completed analysis job
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The full JSON analysis result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeAnalysisResult'
+        '404':
+          description: Task ID not found or job not yet complete.
+
+components:
+  schemas:
+    CodeAnalysisResult:
+      type: object
+      properties:
+        file_tree:
+          type: object
+          description: Nested dictionary representing the file hierarchy.
+        file_analysis:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/FileAnalysis'
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnalysisError'
+
+    FileAnalysis:
+      type: object
+      properties:
+        file_path: { type: string }
+        file_type: { type: string }
+        language: { type: string }
+        elements: { type: array, items: { type: object } } # Simplified for brevity
+        dependencies: { type: array, items: { type: object } } # Simplified for brevity
+        is_binary: { type: boolean }
+
+    AnalysisError:
+      type: object
+      properties:
+        file_path: { type: string }
+        error: { type: string }
