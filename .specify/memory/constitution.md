@@ -46,6 +46,28 @@ Follow essential OOP principles: SOLID, DRY, KISS.
   - Bad: `if x > 10:`
   - Good: `if x > MAX_POWER_EXPONENT:`
 
+### IX. API Integration Standards
+- All API integrations must handle errors gracefully, with clear and consistent error responses.
+- API keys and other sensitive credentials must be stored securely and not hard-coded in the source code.
+- Implement retry mechanisms with exponential backoff for transient API failures.
+
+### X. External Data Source Policy
+- All external data sources must be validated and sanitized to prevent security vulnerabilities.
+- Respect rate limits and terms of service of any external APIs or services.
+- Cache data from external sources where appropriate to improve performance and reduce reliance on external services.
+
+### XI. Documentation Generation Standards
+- Generated documentation must be clear, concise, and easy to understand.
+- Documentation should be generated in a consistent format (e.g., Markdown).
+- Provide code snippets with syntax highlighting for better readability.
+- The documentation must be kept up-to-date with the source code.
+
+### XII. Security First
+- Prioritize security in all aspects of development.
+- Regularly scan for and address security vulnerabilities in the codebase and dependencies.
+- Follow the principle of least privilege, granting only the necessary permissions to services and users.
+- All user input must be validated and sanitized to prevent injection attacks.
+
 ## Technical Stack
 Python 3.12+ with UV package manager
 
@@ -53,6 +75,7 @@ Python 3.12+ with UV package manager
 - All tests must pass
 - At least 80% code coverage
 - Use dataclasses for data structures
+- Documentation coverage must be at least 90%
 
 ## Governance
 This Constitution is the single source of truth for all software development practices within this project. It is a living document that can be amended through the process defined below. All team members are expected to adhere to these principles and standards.
@@ -68,4 +91,4 @@ This Constitution is the single source of truth for all software development pra
 - Automated tooling (e.g., linters, static analyzers) will be used to enforce these standards wherever possible.
 - Deviations from this Constitution require an approved ADR.
 
-**Version**: 1.0.0 | **Ratified**: 2025-11-20 | **Last Amended**: 2025-11-20
+**Version**: 1.1.0 | **Ratified**: 2025-11-20 | **Last Amended**: 2025-11-20
