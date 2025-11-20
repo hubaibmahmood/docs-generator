@@ -72,10 +72,14 @@ Follow essential OOP principles: SOLID, DRY, KISS.
 Python 3.12+ with UV package manager
 
 ## Quality Requirements
-- All tests must pass
-- At least 80% code coverage
-- Use dataclasses for data structures
-- Documentation coverage must be at least 90%
+- **Test Pass Rate**: All tests must pass (100%).
+- **Code Coverage**: At least 80% of the codebase must have test coverage.
+- **Data Structures**: Use dataclasses for data structures to ensure type safety and readability.
+- **Documentation Coverage**: All public modules, classes, functions, and methods must have docstrings. Automated tools will be used to measure docstring coverage, which must be at least 90%.
+- **Documentation Accuracy**: The generated documentation must be regenerated whenever the source code changes to ensure it is always accurate and up-to-date.
+- **Documentation Completeness**: All public APIs, functions, classes, methods, and environment variables must be included in the generated documentation.
+- **Performance**: The document generation process for a repository of up to 10,000 lines of code should complete in under 5 minutes.
+- **Scalability**: The system must be able to handle at least 10 concurrent document generation requests without a significant degradation in performance.
 
 ## Governance
 This Constitution is the single source of truth for all software development practices within this project. It is a living document that can be amended through the process defined below. All team members are expected to adhere to these principles and standards.
@@ -91,4 +95,4 @@ This Constitution is the single source of truth for all software development pra
 - Automated tooling (e.g., linters, static analyzers) will be used to enforce these standards wherever possible.
 - Deviations from this Constitution require an approved ADR.
 
-**Version**: 1.1.0 | **Ratified**: 2025-11-20 | **Last Amended**: 2025-11-20
+**Version**: 1.2.0 | **Ratified**: 2025-11-20 | **Last Amended**: 2025-11-20
