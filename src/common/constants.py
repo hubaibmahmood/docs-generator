@@ -1,0 +1,35 @@
+# src/common/constants.py
+
+# Default exclusion patterns for files and directories during analysis.
+# These patterns will be used to ignore common non-source code files or build artifacts.
+DEFAULT_EXCLUSION_PATTERNS = [
+    "__pycache__",
+    ".git",
+    ".venv",
+    "venv",
+    "node_modules",
+    "dist",
+    "build",
+    "*.log",
+    "*.tmp",
+    "*.swp",
+    ".DS_Store",
+    "Thumbs.db",
+    ".vscode",
+    ".idea",
+    "*.egg-info",
+    "*.pyc",
+    "*.pyd",
+    "*.pyo",
+    "*.prof",
+    "*.sublime-project",
+    "*.sublime-workspace",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".gemini",
+    ".specify",
+    ".gitignore",
+    ".python-version",
+    ".chainlit",
+]

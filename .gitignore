@@ -1,0 +1,39 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+*.egg-info/
+
+# Environments
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# Editor directories and files
+.vscode/
+.idea/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Project-specific
+dist/
+build/
+*.log
+*.tmp
+*.swp
+
+# Dependencies
+node_modules/
+
+# Python-specific
+.Python
+pip-log.txt
+pip-delete-this-arg.txt
+
+# Jupyter Notebook files
+.ipynb_checkpoints

@@ -1,0 +1,34 @@
+[project]
+name = "document-generator"
+version = "0.1.0"
+description = "A code analysis engine for document generation."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "GitPython",
+    "tree-sitter",
+    "tree-sitter-language-pack",
+    "pyyaml",
+    "pytest",
+    "httpx",
+]
+
+[tool.uv]
+# This section can be used for uv-specific configurations,
+# but 'python' version is typically set in 'project.requires-python'.
+# If you have specific uv settings, they would go here.
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "black",
+]
+
+[tool.black]
+line-length = 120
+target-version = ['py312']
+include = '\.pyi?$'
