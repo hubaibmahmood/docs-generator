@@ -212,6 +212,8 @@ See `.specify/memory/constitution.md` for code quality, testing, performance, se
 ## Active Technologies
 - Python 3.12+ + `uv`, `GitPython`, `tree-sitter`, `tree-sitter-python` bindings, `pyyaml` (for API spec), `fastapi` (for API), `uvicorn` (for serving) (001-code-analysis-engine)
 - N/A (analysis is in-memory, output is JSON) (001-code-analysis-engine)
+- Python 3.12+ + `uv`, `openai` (Python SDK), `asyncio` (002-ai-processing-engine)
+- Filesystem (for input source and output docs) (002-ai-processing-engine)
 
 ## Recent Changes
 - 001-code-analysis-engine: Added Python 3.12+ + `uv`, `GitPython`, `tree-sitter`, `tree-sitter-python` bindings, `pyyaml` (for API spec), `fastapi` (for API), `uvicorn` (for serving)
