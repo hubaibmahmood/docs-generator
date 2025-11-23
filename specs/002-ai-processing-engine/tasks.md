@@ -22,13 +22,13 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 [P] Create `src/document_generator/__init__.py` if it doesn't exist.
-- [ ] T002 [P] Create `src/document_generator/engine.py` for orchestration logic.
-- [ ] T003 [P] Create `src/document_generator/agent.py` for AI interaction.
-- [ ] T004 [P] Create `src/document_generator/markdown.py` for Markdown rendering and file writing.
-- [ ] T005 [P] Create `src/document_generator/validator.py` for input validation.
-- [ ] T006 [P] Create `src/models/doc_gen.py` for new data models.
-- [ ] T007 [P] Install `openai` Python SDK (add to `pyproject.toml` and run `uv pip install -e .`).
+- [x] T001 [P] Create `src/document_generator/__init__.py` if it doesn't exist.
+- [x] T002 [P] Create `src/document_generator/engine.py` for orchestration logic.
+- [x] T003 [P] Create `src/document_generator/agent.py` for AI interaction.
+- [x] T004 [P] Create `src/document_generator/markdown.py` for Markdown rendering and file writing.
+- [x] T005 [P] Create `src/document_generator/validator.py` for input validation.
+- [x] T006 [P] Create `src/models/doc_gen.py` for new data models.
+- [x] T007 [P] Install `openai` Python SDK (add to `pyproject.toml` and run `uv pip install -e .`).
 
 ---
 
@@ -40,11 +40,11 @@
 
 ### Foundational Tasks
 
-- [ ] T008 Implement `DocumentJob`, `GeneratedDocumentation`, `ProcessingResult`, and `BatchGenerationResult` dataclasses in `src/models/doc_gen.py`.
-- [ ] T009 Write RED unit tests for `src/models/doc_gen.py` in `tests/unit/models/test_doc_gen.py`.
-- [ ] T010 Implement input validation logic for `CodeAnalysisResult` in `src/document_generator/validator.py`.
-- [ ] T011 Write RED unit tests for `src/document_generator/validator.py` in `tests/unit/document_generator/test_validator.py`.
-- [ ] T012 Configure `openai` client in `src/document_generator/agent.py` to use `gemini-2.5-flash` with Google's OpenAI-compatible endpoint, including API key handling.
+- [x] T008 Implement `DocumentJob`, `GeneratedDocumentation`, `ProcessingResult`, and `BatchGenerationResult` dataclasses in `src/models/doc_gen.py`.
+- [x] T009 Write RED unit tests for `src/models/doc_gen.py` in `tests/unit/models/test_doc_gen.py`.
+- [x] T010 Implement input validation logic for `CodeAnalysisResult` in `src/document_generator/validator.py`.
+- [x] T011 Write RED unit tests for `src/document_generator/validator.py` in `tests/unit/document_generator/test_validator.py`.
+- [x] T012 Configure `openai` client in `src/document_generator/agent.py` to use `gemini-2.5-flash` with Google's OpenAI-compatible endpoint, including API key handling.
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -58,23 +58,23 @@
 
 ### Tests for User Story 1
 
-- [ ] T013 [US1] Write RED unit tests for `src/document_generator/markdown.py` (e.g., rendering structured JSON to Markdown, file writing) in `tests/unit/document_generator/test_markdown.py`.
-- [ ] T014 [US1] Write RED unit tests for core `Agent` logic (e.g., prompt construction, parsing LLM output) in `tests/unit/document_generator/test_agent.py`.
-- [ ] T015 [US1] Write RED integration tests for the `DocumentGeneratorEngine` (orchestration of a single file) in `tests/integration/test_doc_generation_flow.py`.
+- [x] T013 [US1] Write RED unit tests for `src/document_generator/markdown.py` (e.g., rendering structured JSON to Markdown, file writing) in `tests/unit/document_generator/test_markdown.py`.
+- [x] T014 [US1] Write RED unit tests for core `Agent` logic (e.g., prompt construction, parsing LLM output) in `tests/unit/document_generator/test_agent.py`.
+- [x] T015 [US1] Write RED integration tests for the `DocumentGeneratorEngine` (orchestration of a single file) in `tests/integration/test_doc_generation_flow.py`.
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Implement Markdown rendering and file writing logic in `src/document_generator/markdown.py`.
+- [x] T016 [US1] Implement Markdown rendering and file writing logic in `src/document_generator/markdown.py`.
 - [ ] T017 [US1] Implement core AI agent interaction (prompt construction for `GeneratedDocumentation` structure) in `src/document_generator/agent.py`.
-- [ ] T018 [US1] Implement file reading logic in `src/document_generator/engine.py`.
-- [ ] T019 [US1] Implement orchestration in `src/document_generator/engine.py` to:
+- [x] T018 [US1] Implement file reading logic in `src/document_generator/engine.py`.
+- [x] T019 [US1] Implement orchestration in `src/document_generator/engine.py` to:
     - Accept `CodeAnalysisResult`.
     - Iterate through files.
     - Read raw file content.
     - Call the AI agent to generate documentation.
     - Use Markdown writer to save the output to `docs/` mirroring source structure.
     - Handle `ProcessingResult` and `BatchGenerationResult`.
-- [ ] T020 [US1] Add a new endpoint `POST /generate` to `src/api/routes.py` that accepts `CodeAnalysisResult` and returns `BatchGenerationResult`, integrating with `DocumentGeneratorEngine`.
+- [x] T020 [US1] Add a new endpoint `POST /generate` to `src/api/routes.py` that accepts `CodeAnalysisResult` and returns `BatchGenerationResult`, integrating with `DocumentGeneratorEngine`.
 
 **Checkpoint**: User Story 1 should be fully functional and testable independently
 
@@ -88,12 +88,12 @@
 
 ### Tests for User Story 2
 
-- [ ] T021 [US2] Write RED unit tests for `Agent` logic that verifies project context is properly included in the prompt and utilized for context-aware generation in `tests/unit/document_generator/test_agent.py`.
+- [x] T021 [US2] Write RED unit tests for `Agent` logic that verifies project context is properly included in the prompt and utilized for context-aware generation in `tests/unit/document_generator/test_agent.py`.
 
 ### Implementation for User Story 2
 
-- [ ] T022 [US2] Modify `src/document_generator/agent.py` to include `Project Structure` from `CodeAnalysisResult` in the system prompt.
-- [ ] T023 [US2] Refine `src/document_generator/agent.py`'s prompt construction to leverage project context for generating accurate cross-references and explanations.
+- [x] T022 [US2] Modify `src/document_generator/agent.py` to include `Project Structure` from `CodeAnalysisResult` in the system prompt.
+- [x] T023 [US2] Refine `src/document_generator/agent.py`'s prompt construction to leverage project context for generating accurate cross-references and explanations.
 
 **Checkpoint**: User Stories 1 AND 2 should both work independently
 
@@ -107,14 +107,14 @@
 
 ### Tests for User Story 3
 
-- [ ] T024 [US3] Write RED unit tests in `tests/unit/document_generator/test_agent.py` to simulate Context Window Overflow and verify graceful handling (truncation, warning).
-- [ ] T025 [US3] Write RED unit tests in `tests/unit/document_generator/test_agent.py` to simulate malformed JSON output from the LLM and verify retry/raw file saving.
+- [x] T024 [US3] Write RED unit tests in `tests/unit/document_generator/test_agent.py` to simulate Context Window Overflow and verify graceful handling (truncation, warning).
+- [x] T025 [US3] Write RED unit tests in `tests/unit/document_generator/test_agent.py` to simulate malformed JSON output from the LLM and verify retry/raw file saving.
 
 ### Implementation for User Story 3
 
-- [ ] T026 [US3] Implement Context Window Overflow handling in `src/document_generator/agent.py` (first dropping project context, then truncating file content if necessary).
-- [ ] T027 [US3] Implement retry mechanism for LLM calls in `src/document_generator/agent.py` (rate limits, transient errors).
-- [ ] T028 [US3] Implement malformed JSON output handling in `src/document_generator/agent.py` (retry once, then save raw output to `.raw` file).
+- [x] T026 [US3] Implement Context Window Overflow handling in `src/document_generator/agent.py` (first dropping project context, then truncating file content if necessary).
+- [x] T027 [US3] Implement retry mechanism for LLM calls in `src/document_generator/agent.py` (rate limits, transient errors).
+- [x] T028 [US3] Implement malformed JSON output handling in `src/document_generator/agent.py` (retry once, then save raw output to `.raw` file).
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -132,8 +132,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T030 [US4] Implement trivial file detection logic in `src/document_generator/engine.py` (based on `elements` list from `FileAnalysis` and file size).
-- [ ] T031 [US4] Modify `src/document_generator/engine.py` to skip processing and log when a trivial file is detected.
+- [x] T030 [US4] Implement trivial file detection logic in `src/document_generator/engine.py` (based on `elements` list from `FileAnalysis` and file size).
+- [x] T031 [US4] Modify `src/document_generator/engine.py` to skip processing and log when a trivial file is detected.
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -143,13 +143,13 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T032 Refactor and clean up `src/document_generator/` modules for better readability and adherence to DRY principles.
-- [ ] T033 Implement robust logging across all `src/document_generator/` modules.
-- [ ] T034 Ensure all functions, classes, and methods in `src/document_generator/` have appropriate type hints and docstrings.
-- [ ] T035 Update `pyproject.toml` with any new dependencies and ensure `uv` is configured correctly.
-- [ ] T036 Review and update `quickstart.md` with final API usage and any necessary setup steps.
+- [x] T032 Refactor and clean up `src/document_generator/` modules for better readability and adherence to DRY principles.
+- [x] T033 Implement robust logging across all `src/document_generator/` modules.
+- [x] T034 Ensure all functions, classes, and methods in `src/document_generator/` have appropriate type hints and docstrings.
+- [x] T035 Update `pyproject.toml` with any new dependencies and ensure `uv` is configured correctly.
+- [x] T036 Review and update `quickstart.md` with final API usage and any necessary setup steps.
 - [ ] T037 Run `ruff` and `black` to ensure code style compliance in `src/document_generator/`.
-- [ ] T038 Review all generated documentation for consistency and quality (manual check).
+- [x] T038 Review all generated documentation for consistency and quality (manual check).
 
 ---
 

@@ -9,7 +9,7 @@
 ## Installation
 
 ```bash
-uv pip install -r requirements.txt
+uv pip install -e .
 ```
 
 ## Usage (CLI)
@@ -20,21 +20,29 @@ The engine can be invoked programmatically or via the API.
 
 ```python
 import asyncio
-from src.document_generator.engine import DocumentGenerator
+import json
+from src.document_generator.engine import DocumentGeneratorEngine
 from src.models.analysis import CodeAnalysisResult
 
 async def main():
-    # 1. Load analysis result (from Step 1)
-    # analysis_data = ... load from json ...
+    # 1. Load analysis result (from Step 1 output)
+    # For example, assume analysis.json contains the CodeAnalysisResult structure
+    with open("analysis.json", "r") as f:
+        analysis_data = json.load(f)
+    
     analysis_result = CodeAnalysisResult(**analysis_data)
 
     # 2. Initialize Generator
-    generator = DocumentGenerator()
+    generator = DocumentGeneratorEngine()
 
     # 3. Run generation
-    result = await generator.generate_docs(analysis_result, output_dir="docs/")
+    # This will write markdown files to the docs/ directory by default
+    result = await generator.generate_documentation(analysis_result)
     
-    print(f"Processed: {result.processed}, Failed: {result.failed}")
+    print(f"Total: {result.total_files}")
+    print(f"Processed: {result.processed}")
+    print(f"Skipped: {result.skipped}")
+    print(f"Failed: {result.failed}")
 
 if __name__ == "__main__":
     asyncio.run(main())
