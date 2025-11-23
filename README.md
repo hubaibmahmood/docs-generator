@@ -1,12 +1,21 @@
-# Quickstart: Code Analysis Engine
+# Code Analysis and Documentation Generation Engine
 
-This guide provides instructions on how to set up and run the Code Analysis Engine service locally.
+This service analyzes a given software repository, understands the code structure, and uses an AI agent to automatically generate technical documentation in Markdown format.
 
 ## Prerequisites
 
 - Python 3.12+
 - `uv` package manager
 - A running shell/terminal
+
+### Environment Variables
+
+Before running the service, you need to set up your environment variables. Create a `.env` file in the root of the project:
+
+```
+GEMINI_API_KEY="your_google_ai_studio_api_key"
+```
+Replace `"your_google_ai_studio_api_key"` with your actual API key.
 
 ## 1. Setup and Installation
 
@@ -16,29 +25,18 @@ This guide provides instructions on how to set up and run the Code Analysis Engi
     cd docs-generator
     ```
 
-2.  **Create a Virtual Environment**:
+2.  **Create and Activate a Virtual Environment**:
     ```bash
     python3 -m venv .venv
     source .venv/bin/activate
     ```
 
 3.  **Install Dependencies**:
-    Create a `requirements.txt` file with the following content:
-    ```txt
-    fastapi
-    uvicorn
-    GitPython
-    tree-sitter
-    ```
-    Then, install the dependencies using `uv`:
+    Install all required dependencies directly from the `pyproject.toml` file using `uv`.
     ```bash
-    uv pip install -r requirements.txt
+    uv pip install .
     ```
-    You will also need to set up the `tree-sitter` parsers. For example, for Python:
-    ```bash
-    # This step will be automated in the implementation phase
-    git clone https://github.com/tree-sitter/tree-sitter-python.git vendor/tree-sitter-python
-    ```
+    This will install all packages, including `fastapi`, `openai-agents`, and `tree-sitter` language packs.
 
 ## 2. Running the Service
 
@@ -50,16 +48,16 @@ uvicorn src.api.main:app --reload --port 8000
 
 The API will be available at `http://127.0.0.1:8000`.
 
-## 3. Using the API
+## 3. Workflow: Generating Documentation
 
-You can interact with the service using any HTTP client, such as `curl`.
+The primary workflow involves submitting a repository for processing, which includes both analysis and documentation generation.
 
-### a. Submit a Repository for Analysis
+### a. Submit a Repository for Processing
 
-Send a POST request to the `/analyze` endpoint with the GitHub URL.
+Send a POST request to the `/process` endpoint with the GitHub URL.
 
 ```bash
-curl -X POST "http://127.0.0.1:8000/analyze" \
+curl -X POST "http://127.0.0.1:8000/process" \
      -H "Content-Type: application/json" \
      -d 
 {
@@ -82,19 +80,25 @@ Use the `task_id` to poll the `/status/{task_id}` endpoint.
 curl "http://127.0.0.1:8000/status/some-unique-task-id"
 ```
 
-The response will show the current status:
+The response will show the current status (`PENDING`, `IN_PROGRESS`, `SUCCESS`, or `FAILED`).
 ```json
 {
-  "status": "IN_PROGRESS"
+  "task_id": "some-unique-task-id",
+  "status": "IN_PROGRESS",
+  "errors": []
 }
 ```
 
-### c. Retrieve the Result
+### c. Retrieve the Result and Find Files
 
-Once the status is `SUCCESS`, you can get the full analysis from the `/result/{task_id}` endpoint.
+Once the status is `SUCCESS`, you can get the summary from the `/result/{task_id}` endpoint.
 
 ```bash
 curl "http://127.0.0.1:8000/result/some-unique-task-id"
 ```
 
-The response will be the complete `CodeAnalysisResult` JSON object as defined in the `data-model.md`.
+The response will be a `BatchGenerationResult` JSON object, summarizing the outcome of the documentation generation process.
+
+**Most importantly, the generated documentation files will be saved to the `generated_docs/` directory** at the root of the project. The directory structure will mirror the original repository's structure.
+
+For example, if the repository contained a file at `src/utils/helpers.py`, its generated documentation will be located at `generated_docs/src/utils/helpers.md`.
