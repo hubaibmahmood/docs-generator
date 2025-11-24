@@ -25,6 +25,8 @@ class ProcessingResult(BaseModel):
     markdown_content: Optional[str] = None
 
 
+from src.models.analysis import CodeAnalysisResult
+
 class BatchGenerationResult(BaseModel):
     """The aggregate result of the entire generation process."""
     total_sections: int
@@ -32,3 +34,4 @@ class BatchGenerationResult(BaseModel):
     skipped: int
     failed: int
     results: List[ProcessingResult] = Field(default_factory=list)
+    source_analysis: Optional[CodeAnalysisResult] = None

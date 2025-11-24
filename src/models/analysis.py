@@ -42,6 +42,7 @@ class FileAnalysis(BaseModel):
     elements: List[ExtractedElement] = Field(default_factory=list)
     dependencies: List[Dependency] = Field(default_factory=list)
     is_binary: bool = False
+    content: Optional[str] = None
     errors: List[AnalysisError] = Field(default_factory=list)
 
 class CodeAnalysisResult(BaseModel):

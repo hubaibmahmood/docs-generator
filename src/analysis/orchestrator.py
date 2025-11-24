@@ -77,12 +77,25 @@ class AnalysisOrchestrator:
                 
                 parser = ParserFactory.get_parser(file_path)
                 is_binary = False
+                content: str | None = None
+
+                # Read file content if it's not likely binary (simple check)
+                if not is_binary:
+                    try:
+                        # Check file size first (skip if > 1MB)
+                        if os.path.getsize(file_path) < 1 * 1024 * 1024:
+                            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                                content = f.read()
+                    except Exception:
+                        # If reading fails (e.g. binary file not detected earlier), ignore content
+                        pass
                 
                 if parser:
                     logger.debug(f"Parsing file: {relative_file_path} with {type(parser).__name__}")
                     try:
                         file_analysis = parser.parse(file_path)
                         file_analysis.file_path = relative_file_path # Use relative path in the analysis object
+                        file_analysis.content = content
                         file_analysis_map[relative_file_path] = file_analysis
                         if file_analysis.errors:
                             logger.warning(f"File {relative_file_path} parsed with errors: {[err.error for err in file_analysis.errors]}")
@@ -95,15 +108,22 @@ class AnalysisOrchestrator:
                         analysis_result.errors.append(AnalysisError(file_path=relative_file_path, error=f"Unexpected parsing error: {e}"))
                 else:
                     is_binary = True
-                    logger.info(f"No parser found for file: {relative_file_path}. Treating as binary.")
+                    # Even if no parser, we might have read content if it was small and text-like
+                    # But usually 'is_binary=True' means we treat it as binary.
+                    # However, 'ParserFactory.get_parser' returning None doesn't guarantee it's binary, just unknown extension.
+                    # Let's check if we successfully read content.
+                    final_is_binary = is_binary if content is None else False
+                    
+                    logger.info(f"No parser found for file: {relative_file_path}. Treating as binary={final_is_binary}.")
                     file_analysis_map[relative_file_path] = FileAnalysis(
                         file_path=relative_file_path,
-                        file_type="Binary",
+                        file_type="Binary" if final_is_binary else "Unknown",
                         language="N/A",
                         elements=[],
                         dependencies=[],
-                        is_binary=is_binary,
-                        errors=[AnalysisError(file_path=relative_file_path, error="No suitable parser found, treated as binary.")]
+                        is_binary=final_is_binary,
+                        content=content,
+                        errors=[AnalysisError(file_path=relative_file_path, error="No suitable parser found.")]
                     )
                 
                 current_level_in_tree["children"].append({

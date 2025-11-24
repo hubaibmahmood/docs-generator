@@ -1,0 +1,5 @@
+{
+  "name": "DocGen AI",
+  "description": "A smart documentation generator that turns code repositories into comprehensive, interactive documentation sites using Gemini AI.",
+  "requestFramePermissions": []
+}
