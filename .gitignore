@@ -38,3 +38,4 @@ pip-delete-this-arg.txt
 # Jupyter Notebook files
 .ipynb_checkpoints
 generated_docs/
+generated-docs/

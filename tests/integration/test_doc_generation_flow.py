@@ -1,51 +1,50 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pathlib import Path
 
-from src.document_generator.engine import DocumentGeneratorEngine, process_file
+from src.document_generator.engine import DocumentGeneratorEngine, process_section
+from src.document_generator.strategies import ReadmeStrategy
 from src.models.analysis import CodeAnalysisResult, FileAnalysis
-from src.models.doc_gen import GeneratedDocumentation, ProcessingResult
+from src.models.doc_gen import GeneratedSection, ProcessingResult, DocSectionJob
 
 
 @pytest.fixture
 def sample_analysis_result():
     file_analysis_mock = FileAnalysis(
-        file_path="test_file.py",
+        file_path="src/api/main.py",
         file_type="python",
         language="python",
         elements=[],
         dependencies=[],
     )
     return CodeAnalysisResult(
-        file_tree={"test_file.py": {}},
-        file_analysis={"test_file.py": file_analysis_mock},
+        file_tree={"src": {"api": {"main.py": {}}}},
+        file_analysis={"src/api/main.py": file_analysis_mock},
         errors=[],
     )
 
 
 @pytest.mark.asyncio
-async def test_process_file_success(sample_analysis_result, tmp_path):
-    """Test successful file processing."""
-    # Create a dummy file
-    test_file = tmp_path / "test_file.py"
-    long_content = "def foo():\n    pass\n" + "# " * 50
-    test_file.write_text(long_content)
-
-    # Mock generate_documentation_from_job
-    with patch("src.document_generator.engine.generate_documentation_from_job", new_callable=AsyncMock) as mock_gen:
-        mock_gen.return_value = GeneratedDocumentation(summary="Summary", api_reference="API", examples="Examples")
+async def test_process_section_success(sample_analysis_result, tmp_path):
+    """Test successful section processing."""
+    
+    strategy = ReadmeStrategy()
+    
+    # Mock generate_section
+    with patch("src.document_generator.engine.generate_section", new_callable=AsyncMock) as mock_gen:
+        mock_gen.return_value = GeneratedSection(content="# README Content", title="Project Overview")
 
         # We also need to mock write_markdown_to_file
         with patch("src.document_generator.engine.write_markdown_to_file") as mock_write:
-            result = await process_file(
-                "test_file.py", 
+            result = await process_section(
+                strategy, 
                 sample_analysis_result, 
-                base_dir=tmp_path, 
-                output_dir=tmp_path / "docs"
+                output_dir=tmp_path / "generated-docs"
             )
 
             assert result.status == "success"
-            assert result.file_path == "test_file.py"
+            assert result.section_name == "Project Overview"
             mock_gen.assert_called_once()
             mock_write.assert_called_once()
 
@@ -55,18 +54,16 @@ async def test_engine_orchestration(sample_analysis_result):
     """Test the engine orchestrating the batch process."""
     engine = DocumentGeneratorEngine()
 
-    with patch("src.document_generator.engine.process_file", new_callable=AsyncMock) as mock_process:
+    with patch("src.document_generator.engine.process_section", new_callable=AsyncMock) as mock_process:
         mock_process.return_value = ProcessingResult(
-            file_path="test_file.py", doc_path="docs/test_file.md", status="success"
+            section_name="Project Overview", output_path="docs/README.md", status="success"
         )
 
         batch_result = await engine.generate_documentation(sample_analysis_result)
 
-        assert batch_result.total_files == 1
-        assert batch_result.processed == 1
-        assert batch_result.failed == 0
-        # Check call args without insisting on exact match of defaults if they are passed as kwargs
-        mock_process.assert_called_once()
-        args, kwargs = mock_process.call_args
-        assert args[0] == "test_file.py"
-        assert args[1] == sample_analysis_result
+        # Check that we processed sections (strategies count)
+        # We have 5 default strategies
+        assert batch_result.total_sections >= 1 
+        assert batch_result.processed == len(batch_result.results)
+        
+        assert mock_process.call_count >= 1

@@ -1,7 +1,7 @@
 import re
 import fnmatch
 from typing import Dict, Any
-from src.analysis.repository import clone_repository
+from src.analysis.repository import clone_repository # This will be unused in analyze_local_path
 from src.analysis.parsing.factory import ParserFactory
 from src.models.analysis import CodeAnalysisResult, FileAnalysis, AnalysisError
 from src.common.exceptions import RepositoryError, ParsingError
@@ -23,6 +23,100 @@ class AnalysisOrchestrator:
         """
         pass # Parsers are registered in factory.py
 
+    def _perform_analysis(self, base_path: str, repo_name: str) -> CodeAnalysisResult:
+        """Internal method to perform the actual file walking and parsing."""
+        analysis_result = CodeAnalysisResult()
+        file_analysis_map = {}
+        file_tree_dict: Dict[str, Any] = {"name": repo_name, "path": "/", "children": []}
+
+        # Determine exclusion patterns
+        exclusion_patterns = list(DEFAULT_EXCLUSION_PATTERNS)
+        has_specify = os.path.isdir(os.path.join(base_path, ".specify"))
+        has_gemini = os.path.isdir(os.path.join(base_path, ".gemini"))
+        
+        if has_specify and has_gemini:
+            logger.info("Detected Spec-Driven project structure (.specify and .gemini found). Excluding 'specs' and 'history' directories.")
+            exclusion_patterns.extend(["specs", "history"])
+
+        for root, dirs, files in os.walk(base_path):
+            # Filter directories in-place to prevent os.walk from traversing them
+            dirs[:] = [d for d in dirs if not any(fnmatch.fnmatch(d, pattern) for pattern in exclusion_patterns)]
+            
+            # Filter files to ignore them
+            files = [f for f in files if not any(fnmatch.fnmatch(f, pattern) for pattern in exclusion_patterns)]
+            
+            relative_root = os.path.relpath(root, base_path)
+            current_level_in_tree = file_tree_dict
+
+            # Navigate or create the correct level in the file_tree_dict
+            if relative_root != ".":
+                path_parts = relative_root.split(os.sep)
+                for part in path_parts:
+                    found = False
+                    for child in current_level_in_tree["children"]:
+                        if child["name"] == part and child["type"] == "dir":
+                            current_level_in_tree = child
+                            found = True
+                            break
+                    if not found:
+                        new_dir = {"name": part, "path": os.path.join(current_level_in_tree["path"], part), "type": "dir", "children": []}
+                        current_level_in_tree["children"].append(new_dir)
+                        current_level_in_tree = new_dir
+
+            for dir_name in dirs:
+                current_level_in_tree["children"].append({
+                    "name": dir_name,
+                    "path": os.path.join(current_level_in_tree["path"], dir_name),
+                    "type": "dir",
+                    "children": []
+                })
+            
+            for file_name in files:
+                file_path = os.path.join(root, file_name)
+                relative_file_path = os.path.relpath(file_path, base_path)
+                
+                parser = ParserFactory.get_parser(file_path)
+                is_binary = False
+                
+                if parser:
+                    logger.debug(f"Parsing file: {relative_file_path} with {type(parser).__name__}")
+                    try:
+                        file_analysis = parser.parse(file_path)
+                        file_analysis.file_path = relative_file_path # Use relative path in the analysis object
+                        file_analysis_map[relative_file_path] = file_analysis
+                        if file_analysis.errors:
+                            logger.warning(f"File {relative_file_path} parsed with errors: {[err.error for err in file_analysis.errors]}")
+                            analysis_result.errors.extend(file_analysis.errors)
+                    except ParsingError as e:
+                        logger.error(f"ParsingError for file {relative_file_path}: {e}")
+                        analysis_result.errors.append(AnalysisError(file_path=relative_file_path, error=f"Parsing error: {e}"))
+                    except Exception as e:
+                        logger.exception(f"Unexpected error while parsing file {relative_file_path}")
+                        analysis_result.errors.append(AnalysisError(file_path=relative_file_path, error=f"Unexpected parsing error: {e}"))
+                else:
+                    is_binary = True
+                    logger.info(f"No parser found for file: {relative_file_path}. Treating as binary.")
+                    file_analysis_map[relative_file_path] = FileAnalysis(
+                        file_path=relative_file_path,
+                        file_type="Binary",
+                        language="N/A",
+                        elements=[],
+                        dependencies=[],
+                        is_binary=is_binary,
+                        errors=[AnalysisError(file_path=relative_file_path, error="No suitable parser found, treated as binary.")]
+                    )
+                
+                current_level_in_tree["children"].append({
+                    "name": file_name,
+                    "path": os.path.join(relative_root, file_name) if relative_root != "." else file_name,
+                    "type": "file",
+                    "is_binary": is_binary
+                })
+        
+        analysis_result.file_analysis = file_analysis_map
+        analysis_result.file_tree = file_tree_dict
+        return analysis_result
+
     def analyze_repository(self, repo_url: str, output_dir: str) -> CodeAnalysisResult:
         """
         Analyzes a git repository given its URL.
@@ -36,8 +130,7 @@ class AnalysisOrchestrator:
         """
         logger.info(f"Starting analysis for repository: {repo_url}")
         analysis_result = CodeAnalysisResult()
-        cloned_repo_actual_path = None
-
+        
         try:
             logger.info(f"Cloning repository {repo_url} to {output_dir}")
             repo = clone_repository(repo_url, output_dir)
@@ -48,95 +141,7 @@ class AnalysisOrchestrator:
             match = re.search(r'/([^/]+?)(?:\.git)?$', repo_url)
             repo_name = match.group(1) if match else os.path.basename(cloned_repo_actual_path)
             
-            file_analysis_map = {}
-            file_tree_dict: Dict[str, Any] = {"name": repo_name, "path": "/", "children": []}
-
-            # Determine exclusion patterns
-            exclusion_patterns = list(DEFAULT_EXCLUSION_PATTERNS)
-            has_specify = os.path.isdir(os.path.join(cloned_repo_actual_path, ".specify"))
-            has_gemini = os.path.isdir(os.path.join(cloned_repo_actual_path, ".gemini"))
-            
-            if has_specify and has_gemini:
-                logger.info("Detected Spec-Driven project structure (.specify and .gemini found). Excluding 'specs' and 'history' directories.")
-                exclusion_patterns.extend(["specs", "history"])
-
-            for root, dirs, files in os.walk(cloned_repo_actual_path):
-                # Filter directories in-place to prevent os.walk from traversing them
-                dirs[:] = [d for d in dirs if not any(fnmatch.fnmatch(d, pattern) for pattern in exclusion_patterns)]
-                
-                # Filter files to ignore them
-                files = [f for f in files if not any(fnmatch.fnmatch(f, pattern) for pattern in exclusion_patterns)]
-                
-                relative_root = os.path.relpath(root, cloned_repo_actual_path)
-                current_level_in_tree = file_tree_dict
-
-                # Navigate or create the correct level in the file_tree_dict
-                if relative_root != ".":
-                    path_parts = relative_root.split(os.sep)
-                    for part in path_parts:
-                        found = False
-                        for child in current_level_in_tree["children"]:
-                            if child["name"] == part and child["type"] == "dir":
-                                current_level_in_tree = child
-                                found = True
-                                break
-                        if not found:
-                            new_dir = {"name": part, "path": os.path.join(current_level_in_tree["path"], part), "type": "dir", "children": []}
-                            current_level_in_tree["children"].append(new_dir)
-                            current_level_in_tree = new_dir
-
-                for dir_name in dirs:
-                    current_level_in_tree["children"].append({
-                        "name": dir_name,
-                        "path": os.path.join(current_level_in_tree["path"], dir_name),
-                        "type": "dir",
-                        "children": []
-                    })
-                
-                for file_name in files:
-                    file_path = os.path.join(root, file_name)
-                    relative_file_path = os.path.relpath(file_path, cloned_repo_actual_path)
-                    
-                    parser = ParserFactory.get_parser(file_path)
-                    is_binary = False
-                    
-                    if parser:
-                        logger.debug(f"Parsing file: {relative_file_path} with {type(parser).__name__}")
-                        try:
-                            file_analysis = parser.parse(file_path)
-                            file_analysis.file_path = relative_file_path # Use relative path in the analysis object
-                            file_analysis_map[relative_file_path] = file_analysis
-                            if file_analysis.errors:
-                                logger.warning(f"File {relative_file_path} parsed with errors: {[err.error for err in file_analysis.errors]}")
-                                analysis_result.errors.extend(file_analysis.errors)
-                        except ParsingError as e:
-                            logger.error(f"ParsingError for file {relative_file_path}: {e}")
-                            analysis_result.errors.append(AnalysisError(file_path=relative_file_path, error=f"Parsing error: {e}"))
-                        except Exception as e:
-                            logger.exception(f"Unexpected error while parsing file {relative_file_path}")
-                            analysis_result.errors.append(AnalysisError(file_path=relative_file_path, error=f"Unexpected parsing error: {e}"))
-                    else:
-                        is_binary = True
-                        logger.info(f"No parser found for file: {relative_file_path}. Treating as binary.")
-                        file_analysis_map[relative_file_path] = FileAnalysis(
-                            file_path=relative_file_path,
-                            file_type="Binary",
-                            language="N/A",
-                            elements=[],
-                            dependencies=[],
-                            is_binary=is_binary,
-                            errors=[AnalysisError(file_path=relative_file_path, error="No suitable parser found, treated as binary.")]
-                        )
-                    
-                    current_level_in_tree["children"].append({
-                        "name": file_name,
-                        "path": os.path.join(relative_root, file_name) if relative_root != "." else file_name,
-                        "type": "file",
-                        "is_binary": is_binary
-                    })
-            
-            analysis_result.file_analysis = file_analysis_map
-            analysis_result.file_tree = file_tree_dict
+            analysis_result = self._perform_analysis(cloned_repo_actual_path, repo_name)
             logger.info(f"Finished analysis for repository: {repo_url}")
 
         except RepositoryError as e:
@@ -146,4 +151,20 @@ class AnalysisOrchestrator:
             logger.exception(f"An unexpected error occurred during orchestration for {repo_url}")
             analysis_result.errors.append(AnalysisError(file_path=repo_url, error=f"An unexpected error occurred during orchestration: {e}"))
 
+        return analysis_result
+
+    def analyze_local_path(self, local_path: str) -> CodeAnalysisResult:
+        """
+        Analyzes a local directory directly, without attempting to clone.
+
+        Args:
+            local_path (str): The path to the local directory to analyze.
+
+        Returns:
+            CodeAnalysisResult: The result of the analysis.
+        """
+        logger.info(f"Starting analysis for local path: {local_path}")
+        repo_name = os.path.basename(local_path)
+        analysis_result = self._perform_analysis(local_path, repo_name)
+        logger.info(f"Finished analysis for local path: {local_path}")
         return analysis_result

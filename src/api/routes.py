@@ -206,7 +206,7 @@ async def run_processing_in_background(task_id: str, repo_url: str):
         batch_result: BatchGenerationResult = await engine.generate_documentation(
             analysis_result,
             base_dir=Path(temp_input_dir),
-            output_dir=Path("generated_docs"),
+            output_dir=Path("generated-docs"),
             write_to_disk=True,
         )
 

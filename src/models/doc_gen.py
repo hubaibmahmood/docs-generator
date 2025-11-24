@@ -1,27 +1,25 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, Optional, Any
-from src.models.analysis import FileAnalysis, CodeAnalysisResult
+from typing import List, Optional
 
 
-class DocumentJob(BaseModel):
-    """Represents a single file processing task."""
-    file_path: str
+class DocSectionJob(BaseModel):
+    """Represents a job to generate a specific documentation section."""
+    section_name: str  # e.g., "api-reference", "README"
+    output_filename: str # e.g., "api-reference.md", "README.md"
+    context_content: str # Aggregated context (code summaries, lists of routes, etc.)
+    prompt_instruction: str # Specific instruction for this section
+
+
+class GeneratedSection(BaseModel):
+    """The raw markdown output from the AI Agent."""
     content: str
-    context: Dict[str, Any] = Field(default_factory=dict)
-    analysis: CodeAnalysisResult
-
-
-class GeneratedDocumentation(BaseModel):
-    """The structured output from the AI Agent (before saving)."""
-    summary: str
-    api_reference: str
-    examples: str
+    title: Optional[str] = None
 
 
 class ProcessingResult(BaseModel):
-    """The result of processing a single file."""
-    file_path: str
-    doc_path: str
+    """The result of processing a single section."""
+    section_name: str
+    output_path: str
     status: str # "success", "skipped", "failed"
     error: Optional[str] = None
     markdown_content: Optional[str] = None
@@ -29,7 +27,7 @@ class ProcessingResult(BaseModel):
 
 class BatchGenerationResult(BaseModel):
     """The aggregate result of the entire generation process."""
-    total_files: int
+    total_sections: int
     processed: int
     skipped: int
     failed: int
