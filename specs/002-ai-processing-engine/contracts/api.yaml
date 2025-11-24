@@ -1,0 +1,73 @@
+openapi: 3.0.0
+info:
+  title: Document Generator API
+  version: 1.0.0
+paths:
+  /generate:
+    post:
+      summary: Generate documentation from code analysis
+      operationId: generate_docs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CodeAnalysisResult'
+      responses:
+        '200':
+          description: Documentation generation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchGenerationResult'
+        '400':
+          description: Invalid input
+        '500':
+          description: Server error
+
+components:
+  schemas:
+    CodeAnalysisResult:
+      type: object
+      properties:
+        file_tree:
+          type: object
+        file_analysis:
+          type: object
+        errors:
+          type: array
+          items:
+            type: object
+      required:
+        - file_tree
+        - file_analysis
+
+    BatchGenerationResult:
+      type: object
+      properties:
+        total_files:
+          type: integer
+        processed:
+          type: integer
+        skipped:
+          type: integer
+        failed:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessingResult'
+
+    ProcessingResult:
+      type: object
+      properties:
+        file_path:
+          type: string
+        doc_path:
+          type: string
+        status:
+          type: string
+          enum: [success, skipped, failed]
+        error:
+          type: string
+          nullable: true

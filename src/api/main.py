@@ -1,4 +1,10 @@
 from fastapi import FastAPI
+from dotenv import load_dotenv
+import os
+
+# Load environment variables before importing other modules that might rely on them
+load_dotenv()
+
 from . import routes
 
 app = FastAPI(
