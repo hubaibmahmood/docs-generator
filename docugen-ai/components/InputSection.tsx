@@ -36,7 +36,7 @@ const InputSection: React.FC<InputSectionProps> = ({
           </h1>
           <p className="text-slate-400 text-lg max-w-md mx-auto">
             Transform any GitHub repository into beautiful, comprehensive
-            documentation in seconds using Gemini AI.
+            documentation in seconds using DocGen AI.
           </p>
         </div>
 

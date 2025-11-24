@@ -117,6 +117,7 @@ function App() {
     setDocsCache({});
     setSelectedId(null);
     setStatus({ step: 'idle', message: '', progress: 0 });
+    window.location.hash = ''; // Clear the URL hash
   };
 
   // --- Render ---

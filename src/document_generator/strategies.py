@@ -1,7 +1,9 @@
-from abc import ABC, abstractmethod
-from typing import List, Dict, Any
-from src.models.analysis import CodeAnalysisResult, FileAnalysis, ClassElement, FunctionElement
 import json
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List
+
+from src.models.analysis import ClassElement, CodeAnalysisResult, FileAnalysis, FunctionElement
+
 
 class DocumentationStrategy(ABC):
     """Abstract base class for documentation generation strategies."""
@@ -50,16 +52,27 @@ class ReadmeStrategy(DocumentationStrategy):
     def gather_context(self, analysis: CodeAnalysisResult) -> str:
         # Summarize file tree and key files
         file_list = list(analysis.file_analysis.keys())
-        return f"Total Files: {len(file_list)}\nFile List:\n" + "\n".join(file_list[:50])
+        context = f"Total Files: {len(file_list)}\nFile List:\n" + "\n".join(file_list[:50])
+
+        # Include existing README content if available to preserve original intent/badges
+        for file_path, file_data in analysis.file_analysis.items():
+            if file_path.lower() == "readme.md" and file_data.content:
+                context += (
+                    f"\n\n--- Original README.md Content ---\n{file_data.content[:5000]}\n--- End Original README ---"
+                )
+                break
+
+        return context
 
     def get_prompt(self, context: str) -> str:
         return (
-            "Generate a README.md for this project.\n"
+            "Generate a comprehensive README.md for this project.\n"
             "Include:\n"
-            "1. Project Title (Infer from directory name or files)\n"
+            "1. Project Title & Description (Use original README as a base if available)\n"
             "2. High-level Description\n"
-            "3. Key Features (Infer from file names like 'api', 'models')\n"
-            "4. Project Structure Summary\n\n"
+            "3. Key Features (Infer from file names and original README)\n"
+            "4. Project Structure Summary\n"
+            "- DO NOT include installation, setup, or running instructions. This will be covered in 'Getting Started'.\n\n"
             f"Context:\n{context}"
         )
 
@@ -71,8 +84,23 @@ class ArchitectureStrategy(DocumentationStrategy):
     def gather_context(self, analysis: CodeAnalysisResult) -> str:
         # Use file tree and core modules
         # Filter for 'src' or 'app' or 'lib'
-        core_files = [f for f in analysis.file_analysis.keys() if "/" in f] 
-        return f"File Structure:\n" + "\n".join(core_files)
+        core_files = [f for f in analysis.file_analysis.keys() if "/" in f]
+        context = f"File Structure:\n" + "\n".join(core_files)
+
+        # Add content of key files to provide architectural context
+        context += "\n\nKey File Contents:\n"
+        count = 0
+        for f in core_files:
+            # Heuristic: prioritize typical entry points or core logic
+            if (
+                any(x in f.lower() for x in ["main", "app", "server", "config", "models", "routes"])
+                and count < 10
+            ):
+                if f in analysis.file_analysis and analysis.file_analysis[f].content:
+                    context += f"\n--- {f} ---\n{analysis.file_analysis[f].content[:2000]}\n"
+                    count += 1
+
+        return context
 
     def get_prompt(self, context: str) -> str:
         return (
@@ -92,12 +120,15 @@ class ApiReferenceStrategy(DocumentationStrategy):
         # OR functions starting with 'get_', 'post_', 'create_', 'update_' in likely API files
         relevant_content = []
         for file_path, file_data in analysis.file_analysis.items():
-            if any(k in file_path.lower() for k in ['api', 'route', 'controller', 'view']):
+            if any(k in file_path.lower() for k in ["api", "route", "controller", "view"]):
                 relevant_content.append(f"File: {file_path}")
-                relevant_content.append(self._format_elements(file_data.elements))
-        
+                if file_data.content:
+                    relevant_content.append(f"Content:\n{file_data.content[:5000]}")
+                else:
+                    relevant_content.append(self._format_elements(file_data.elements))
+
         if not relevant_content:
-             return "No obvious API files found (checked for 'api', 'route', 'controller')."
+            return "No obvious API files found (checked for 'api', 'route', 'controller')."
         return "\n".join(relevant_content)
 
     def get_prompt(self, context: str) -> str:
@@ -118,10 +149,13 @@ class DataModelsStrategy(DocumentationStrategy):
         # Heuristic: Include files with 'model', 'schema', 'entity' in path
         relevant_content = []
         for file_path, file_data in analysis.file_analysis.items():
-            if any(k in file_path.lower() for k in ['model', 'schema', 'entity', 'dto']):
-                 relevant_content.append(f"File: {file_path}")
-                 relevant_content.append(self._format_elements(file_data.elements))
-        
+            if any(k in file_path.lower() for k in ["model", "schema", "entity", "dto"]):
+                relevant_content.append(f"File: {file_path}")
+                if file_data.content:
+                    relevant_content.append(f"Content:\n{file_data.content[:3000]}")
+                else:
+                    relevant_content.append(self._format_elements(file_data.elements))
+
         return "\n".join(relevant_content)
 
     def get_prompt(self, context: str) -> str:
@@ -132,29 +166,41 @@ class DataModelsStrategy(DocumentationStrategy):
             f"Context:\n{context}"
         )
 
+
 class GettingStartedStrategy(DocumentationStrategy):
     section_name = "Getting Started"
     output_filename = "getting-started.md"
-    
+
     def gather_context(self, analysis: CodeAnalysisResult) -> str:
         # Look for config files
-        relevant_files = ['pyproject.toml', 'requirements.txt', 'Dockerfile', 'docker-compose.yml', 'Makefile', 'package.json']
+        relevant_files = [
+            "pyproject.toml",
+            "requirements.txt",
+            "Dockerfile",
+            "docker-compose.yml",
+            "Makefile",
+            "package.json",
+            "README.md",
+        ]
         found = []
         for f in relevant_files:
             if f in analysis.file_analysis:
-                 found.append(f"Found {f}")
-                 # Ideally we'd have content, but analysis might not have it. 
-                 # We assume standard python setup if pyproject.toml exists.
-        
+                file_data = analysis.file_analysis[f]
+                found.append(f"Found {f}")
+                if file_data.content:
+                    # Include content to help with specific instructions
+                    found.append(f"--- Content of {f} ---\n{file_data.content[:3000]}\n--- End of {f} ---")
+
         return "\n".join(found)
 
     def get_prompt(self, context: str) -> str:
-         return (
+        return (
             "Generate a getting-started.md document.\n"
             "Provide installation instructions based on the detected files (e.g., 'pip install', 'poetry install').\n"
             "Explain how to run the project if inferable.\n\n"
             f"Context:\n{context}"
         )
+
 
 def get_all_strategies() -> List[DocumentationStrategy]:
     return [
