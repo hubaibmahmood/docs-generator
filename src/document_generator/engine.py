@@ -110,4 +110,5 @@ class DocumentGeneratorEngine:
             skipped=skipped,
             failed=failed,
             results=results,
+            source_analysis=analysis_result
         )
