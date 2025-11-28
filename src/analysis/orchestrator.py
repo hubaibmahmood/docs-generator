@@ -40,7 +40,9 @@ class AnalysisOrchestrator:
 
         for root, dirs, files in os.walk(base_path):
             # Filter directories in-place to prevent os.walk from traversing them
-            dirs[:] = [d for d in dirs if not any(fnmatch.fnmatch(d, pattern) for pattern in exclusion_patterns)]
+            # Also filter out symlinks to directories to prevent traversal
+            dirs[:] = [d for d in dirs if not any(fnmatch.fnmatch(d, pattern) for pattern in exclusion_patterns) 
+                       and not os.path.islink(os.path.join(root, d))]
             
             # Filter files to ignore them
             files = [f for f in files if not any(fnmatch.fnmatch(f, pattern) for pattern in exclusion_patterns)]
@@ -64,6 +66,11 @@ class AnalysisOrchestrator:
                         current_level_in_tree = new_dir
 
             for dir_name in dirs:
+                # Double check it's not a link (though dirs[:] filter handles traversal, we also want to exclude from tree)
+                if os.path.islink(os.path.join(root, dir_name)):
+                     logger.warning(f"Skipping symlink directory: {os.path.join(root, dir_name)}")
+                     continue
+
                 current_level_in_tree["children"].append({
                     "name": dir_name,
                     "path": os.path.join(current_level_in_tree["path"], dir_name),
@@ -73,6 +80,12 @@ class AnalysisOrchestrator:
             
             for file_name in files:
                 file_path = os.path.join(root, file_name)
+                
+                # Skip file symlinks
+                if os.path.islink(file_path):
+                    logger.warning(f"Skipping symlink file: {file_path}")
+                    continue
+
                 relative_file_path = os.path.relpath(file_path, base_path)
                 
                 parser = ParserFactory.get_parser(file_path)
