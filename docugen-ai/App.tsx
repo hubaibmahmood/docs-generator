@@ -59,7 +59,10 @@ function App() {
             
           } else if (taskStatus.status === 'FAILED') {
             clearInterval(pollInterval);
-            setStatus({ step: 'error', message: 'Analysis Failed', progress: 0 });
+            const errorMessage = taskStatus.errors && taskStatus.errors.length > 0 
+              ? taskStatus.errors[0].error 
+              : 'Analysis Failed';
+            setStatus({ step: 'error', message: errorMessage, progress: 0 });
           } else {
             // Still pending/in_progress
              setStatus(prev => ({ ...prev, progress: prev.progress < 90 ? prev.progress + 5 : 90 }));
@@ -123,7 +126,13 @@ function App() {
   // --- Render ---
 
   if (step === 'input') {
-    return <InputSection onAnalyze={handleAnalyze} isAnalyzing={status.step !== 'idle' && status.step !== 'error'} />;
+    return (
+      <InputSection 
+        onAnalyze={handleAnalyze} 
+        isAnalyzing={status.step !== 'idle' && status.step !== 'error'}
+        error={status.step === 'error' ? status.message : undefined}
+      />
+    );
   }
 
   const currentDoc = selectedId ? docsCache[selectedId] : null;

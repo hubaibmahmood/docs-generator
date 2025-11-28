@@ -34,7 +34,7 @@ export const apiService = {
 
   getStatus: async (
     taskId: string,
-  ): Promise<{ status: string; message?: string }> => {
+  ): Promise<{ status: string; message?: string; errors?: { error: string }[] }> => {
     const response = await fetch(`${API_BASE}/status/${taskId}`);
     if (!response.ok) throw new Error("Failed to check status");
     return await response.json();

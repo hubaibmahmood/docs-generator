@@ -85,8 +85,13 @@ async def run_analysis_in_background(task_id: str, repo_url: str):
         repo_analysis_tasks[task_id]["errors"].append(AnalysisError(file_path=repo_url, error=str(e)).model_dump())
     finally:
         if temp_dir:
-            shutil.rmtree(temp_dir)
-            logger.info(f"Task {task_id}: Cleaned up temporary directory: {temp_dir}")
+            try:
+                shutil.rmtree(temp_dir)
+                logger.info(f"Task {task_id}: Cleaned up temporary directory: {temp_dir}")
+            except FileNotFoundError:
+                pass
+            except Exception as e:
+                logger.warning(f"Task {task_id}: Failed to clean up temp dir {temp_dir}: {e}")
 
 
 @router.get("/status/{task_id}")
@@ -224,5 +229,10 @@ async def run_processing_in_background(task_id: str, repo_url: str):
         repo_analysis_tasks[task_id]["errors"].append(AnalysisError(file_path=repo_url, error=str(e)).model_dump())
     finally:
         if temp_input_dir:
-            shutil.rmtree(temp_input_dir)
-            logger.info(f"Process Task {task_id}: Cleaned up temporary input directory: {temp_input_dir}")
+            try:
+                shutil.rmtree(temp_input_dir)
+                logger.info(f"Process Task {task_id}: Cleaned up temporary input directory: {temp_input_dir}")
+            except FileNotFoundError:
+                pass
+            except Exception as e:
+                logger.warning(f"Process Task {task_id}: Failed to clean up temp dir {temp_input_dir}: {e}")
