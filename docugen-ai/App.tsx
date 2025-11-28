@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import InputSection from './components/InputSection';
 import Sidebar from './components/Sidebar';
 import DocViewer from './components/DocViewer';
+import LoginScreen from './components/LoginScreen';
 import { FileNode, GeneratedDoc, AnalysisStatus, FileType } from './types';
 import { apiService, transformFileTree, transformGeneratedDocs } from './services/apiService';
 
 function App() {
   // App State
-  const [step, setStep] = useState<'input' | 'workspace'>('input');
+  const [step, setStep] = useState<'auth' | 'input' | 'workspace'>('auth');
   const [status, setStatus] = useState<AnalysisStatus>({ step: 'idle', message: '', progress: 0 });
   const [files, setFiles] = useState<FileNode[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -17,6 +18,10 @@ function App() {
   const [isLoadingDoc, setIsLoadingDoc] = useState(false);
 
   // --- Actions ---
+
+  const handleLoginSuccess = () => {
+    setStep('input');
+  };
 
   const handleAnalyze = async (url: string) => {
     try {
@@ -124,6 +129,10 @@ function App() {
   };
 
   // --- Render ---
+
+  if (step === 'auth') {
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
 
   if (step === 'input') {
     return (
