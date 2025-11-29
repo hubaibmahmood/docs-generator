@@ -1,9 +1,8 @@
-import json
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 
 from src.common.security.redactor import SecretRedactor
-from src.models.analysis import ClassElement, CodeAnalysisResult, FileAnalysis, FunctionElement
+from src.models.analysis import ClassElement, CodeAnalysisResult, FunctionElement
 
 
 class DocumentationStrategy(ABC):
@@ -39,7 +38,7 @@ class DocumentationStrategy(ABC):
         """Constructs the prompt for the AI Agent."""
         pass
 
-    def _format_elements(self, elements: List[Any]) -> str:
+    def _format_elements(self, elements: list[Any]) -> str:
         """Helper to format elements for context."""
         output = []
         for el in elements:
@@ -96,7 +95,7 @@ class ArchitectureStrategy(DocumentationStrategy):
         """Use file tree and core modules"""
         # Filter for 'src' or 'app' or 'lib'
         core_files = [f for f in analysis.file_analysis.keys() if "/" in f]
-        context = f"File Structure:\n" + "\n".join(core_files)
+        context = "File Structure:\n" + "\n".join(core_files)
 
         # Add content of key files to provide architectural context
         context += "\n\nKey File Contents:\n"
@@ -210,7 +209,7 @@ class GettingStartedStrategy(DocumentationStrategy):
         )
 
 
-def get_all_strategies() -> List[DocumentationStrategy]:
+def get_all_strategies() -> list[DocumentationStrategy]:
     return [
         ReadmeStrategy(),
         GettingStartedStrategy(),

@@ -1,12 +1,12 @@
-from fastapi import FastAPI, Depends
-from fastapi.middleware.cors import CORSMiddleware
+
 from dotenv import load_dotenv
-import os
+from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables before importing other modules that might rely on them
 load_dotenv()
 
-from . import routes, auth
+from . import auth, routes
 from .auth import get_current_user_from_cookie
 
 app = FastAPI(

@@ -1,9 +1,7 @@
 """Agent module for AI interaction."""
 
-import json
 import logging
 import os
-from typing import Union, Optional
 
 from agents import (
     Agent,
@@ -36,12 +34,12 @@ doc_gen_agent = Agent(
 )
 
 
-def get_client_config(api_key: Optional[str] = None) -> RunConfig:
+def get_client_config(api_key: str | None = None) -> RunConfig:
     """
     Creates a RunConfig with a client using the provided API key or environment variable.
     """
     key_to_use = api_key or os.getenv("GEMINI_API_KEY")
-    
+
     if not key_to_use:
         raise ValueError("Gemini API Key is missing. Please provide it in settings or set GEMINI_API_KEY env var.")
 
@@ -51,17 +49,17 @@ def get_client_config(api_key: Optional[str] = None) -> RunConfig:
     )
 
     model = OpenAIChatCompletionsModel(model="gemini-2.0-flash", openai_client=external_client)
-    
+
     return RunConfig(model=model, model_provider=external_client, trace_id=gen_trace_id())
 
 
-async def generate_section(job: DocSectionJob, api_key: Optional[str] = None, retry_count: int = 0) -> GeneratedSection:
+async def generate_section(job: DocSectionJob, api_key: str | None = None, retry_count: int = 0) -> GeneratedSection:
     """
     Constructs a prompt, calls the LLM via Runner.run, and returns the Markdown content.
     """
     # Safety truncation for context
-    max_context_chars = 800_000 
-    
+    max_context_chars = 800_000
+
     context_content = job.context_content
     if len(context_content) > max_context_chars:
         logger.warning(f"Context for {job.section_name} exceeds limit. Truncating.")
@@ -78,9 +76,9 @@ async def generate_section(job: DocSectionJob, api_key: Optional[str] = None, re
     try:
         # Get config with dynamic key
         config = get_client_config(api_key)
-        
+
         result = await Runner.run(doc_gen_agent, input=user_prompt, run_config=config)
-        
+
         # The result.final_output should be a string for text-only agents
         content = str(result.final_output)
 

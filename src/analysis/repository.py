@@ -1,11 +1,12 @@
-import os
-import shutil
-import git
-import logging
-import re
-import socket
 import ipaddress
+import logging
+import os
+import re
+import shutil
+import socket
 from urllib.parse import urlparse
+
+import git
 
 from src.common.exceptions import RepositoryError
 
@@ -21,7 +22,7 @@ def _validate_repo_url(repo_url: str) -> str:
         raise RepositoryError("Invalid repository URL. URL exceeds maximum length of 2048 characters.")
 
     # 1. Protocol check
-    if not (repo_url.startswith("http://") or repo_url.startswith("https://") or 
+    if not (repo_url.startswith("http://") or repo_url.startswith("https://") or
             repo_url.startswith("git@") or repo_url.startswith("ssh://")):
         raise RepositoryError(f"Invalid repository URL protocol. Must be http, https, ssh, or git@. URL: {repo_url}")
 
@@ -33,7 +34,7 @@ def _validate_repo_url(repo_url: str) -> str:
     # Block control characters strictly
     if re.search(r"[\x00-\x1f\x7f]", repo_url):
         raise RepositoryError("Invalid repository URL. Contains control characters.")
-    
+
     if not re.match(r"^[a-zA-Z0-9\-_\.\/\:@]+$", repo_url):
         raise RepositoryError(f"Invalid repository URL. Contains illegal characters. URL: {repo_url}")
 
@@ -45,7 +46,7 @@ def _validate_repo_url(repo_url: str) -> str:
     if "@" in repo_url:
         # Allow git@github.com (SSH style)
         if not (repo_url.startswith("git@") or repo_url.startswith("ssh://git@")):
-             # For http/https, @ implies auth. 
+             # For http/https, @ implies auth.
              # Regex to check if it's http(s)://user:pass@host or http(s)://user@host
              if re.search(r"^https?://[^/]+@", repo_url):
                  raise RepositoryError("Invalid repository URL. Embedded credentials are not allowed for security reasons.")
@@ -62,12 +63,12 @@ def _validate_repo_url(repo_url: str) -> str:
     else:
         # For git@ or ssh without :// (though ssh usually has it)
         normalized_url = re.sub(r"/{2,}", "/", repo_url)
-    
+
     # 7. SSRF Prevention: Resolve hostname and check for private/reserved IPs
     try:
         parsed = urlparse(normalized_url)
         hostname = parsed.hostname
-        
+
         if not hostname:
              # Fallback for git@ or ssh:// formats if urlparse fails to get hostname cleanly
              if "@" in normalized_url and ":" in normalized_url:
@@ -79,20 +80,20 @@ def _validate_repo_url(repo_url: str) -> str:
             try:
                 ip_str = socket.gethostbyname(hostname)
                 ip = ipaddress.ip_address(ip_str)
-                
+
                 if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved:
                     raise RepositoryError(f"Blocked access to private/local network address: {hostname} ({ip_str})")
-                    
+
             except socket.gaierror:
                 pass
-                
+
     except ValueError as e:
         raise RepositoryError(f"Invalid IP address format derived from hostname: {e}")
     except Exception as e:
         if isinstance(e, RepositoryError):
             raise e
         logger.warning(f"SSRF check warning during hostname parsing: {e}")
-        
+
     return normalized_url
 
 def _sanitize_git_error(error_msg: str) -> str:
@@ -120,9 +121,9 @@ def clone_repository(repo_url: str, destination: str) -> git.Repo:
     except git.exc.GitCommandError as e:
         error_output = e.stderr.strip()
         logger.error(f"GitCommandError while cloning {normalized_url}: {error_output}")
-        
+
         sanitized_error = _sanitize_git_error(error_output)
-        
+
         if os.path.exists(destination):
             shutil.rmtree(destination)
             logger.info(f"Cleaned up partial clone directory: {destination}")

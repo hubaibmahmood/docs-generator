@@ -1,9 +1,10 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import os
 
-# Default to SQLite for local development. 
+# Default to SQLite for local development.
 # On Render, we will set DATABASE_URL to the PostgreSQL connection string.
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
 

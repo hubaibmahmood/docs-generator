@@ -16,14 +16,23 @@ function App() {
   const [files, setFiles] = useState<FileNode[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
-  const [apiKey, setApiKey] = useState<string>("");
-
+  const [isGeminiApiKeyConfigured, setIsGeminiApiKeyConfigured] = useState<boolean>(false);
+  
+  // Effect to fetch API key status on login/app mount
   React.useEffect(() => {
-    const storedKey = localStorage.getItem("docugen_gemini_api_key");
-    if (storedKey) {
-      setApiKey(storedKey);
+    if (step !== 'auth') { // Only fetch if authenticated
+      const fetchApiKeyStatus = async () => {
+        try {
+          const status = await apiService.getGeminiApiKeyStatus();
+          setIsGeminiApiKeyConfigured(status.configured);
+        } catch (error) {
+          console.error("Failed to fetch API key status:", error);
+          setIsGeminiApiKeyConfigured(false); // Assume not configured on error
+        }
+      };
+      fetchApiKeyStatus();
     }
-  }, []);
+  }, [step]); // Re-run when step changes
   
   // Cache for generated docs
   const [docsCache, setDocsCache] = useState<Record<string, GeneratedDoc>>({});
@@ -64,15 +73,20 @@ function App() {
     try {
       setStatus({ step: 'scanning', message: 'Connecting to API...', progress: 10 });
       
-      const taskId = await apiService.startProcessing(url, apiKey);
+      const taskId = await apiService.startProcessing(url);
       
       setStatus({ step: 'analyzing', message: 'Processing Repository...', progress: 30 });
 
-      // Poll for completion
+      // Polling for completion with retry logic
+      const MAX_POLLING_RETRIES = 3;
+      // POLLING_RETRY_DELAY_MS is implicit in setInterval, but could be added for exponential backoff if desired
+      let pollingRetryCount = 0;
+
       const pollInterval = setInterval(async () => {
         try {
           const taskStatus = await apiService.getStatus(taskId);
-          
+          pollingRetryCount = 0; // Reset retry count on successful status check
+
           if (taskStatus.status === 'SUCCESS') {
             clearInterval(pollInterval);
             setStatus({ step: 'complete', message: 'Processing Complete', progress: 100 });
@@ -110,10 +124,21 @@ function App() {
              setStatus(prev => ({ ...prev, progress: prev.progress < 90 ? prev.progress + 5 : 90 }));
           }
         } catch (e) {
-          clearInterval(pollInterval);
-          setStatus({ step: 'error', message: 'Connection Lost', progress: 0 });
+          console.error("Polling error:", e);
+          if (pollingRetryCount < MAX_POLLING_RETRIES) {
+            pollingRetryCount++;
+            setStatus(prev => ({
+              ...prev,
+              message: `Connection Lost. Retrying ${pollingRetryCount}/${MAX_POLLING_RETRIES}...`,
+              step: 'reconnecting' // New step to indicate reconnection attempt
+            }));
+            // The setInterval will naturally retry after 2 seconds
+          } else {
+            clearInterval(pollInterval);
+            setStatus({ step: 'error', message: 'Connection Lost Permanently', progress: 0 });
+          }
         }
-      }, 2000);
+      }, 2000); // Original polling interval
 
     } catch (error) {
        setStatus({ step: 'error', message: 'Failed to start analysis', progress: 0 });
@@ -180,8 +205,7 @@ function App() {
       <>
         <Header userName={userName} onLogout={handleLogout} onBack={handleBackToDashboard} />
         <SettingsScreen 
-            apiKey={apiKey} 
-            onSave={(key) => setApiKey(key)}
+            onApiKeyConfiguredChange={setIsGeminiApiKeyConfigured}
         />
       </>
     );
@@ -196,7 +220,7 @@ function App() {
                 onAnalyze={handleAnalyze} 
                 isAnalyzing={status.step !== 'idle' && status.step !== 'error'}
                 error={status.step === 'error' ? status.message : undefined}
-                hasApiKey={!!apiKey}
+                isGeminiApiKeyConfigured={isGeminiApiKeyConfigured}
             />
         </div>
       </div>

@@ -1,6 +1,8 @@
 import pytest
+
 from src.analysis.repository import _validate_repo_url
 from src.common.exceptions import RepositoryError
+
 
 class TestSecurityVectors:
     """

@@ -1,8 +1,8 @@
-from typing import Optional
 import os
 
 from src.analysis.parsing.base_parser import BaseParser
 from src.analysis.parsing.python_parser import PythonParser
+
 
 class ParserFactory:
     """
@@ -21,7 +21,7 @@ class ParserFactory:
         cls._parsers.append(parser)
 
     @classmethod
-    def get_parser(cls, file_path: str) -> Optional[BaseParser]:
+    def get_parser(cls, file_path: str) -> BaseParser | None:
         """
         Retrieves a compatible parser for the given file path based on extension.
 

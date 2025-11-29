@@ -5,14 +5,14 @@ interface InputSectionProps {
   onAnalyze: (url: string) => void;
   isAnalyzing: boolean;
   error?: string;
-  hasApiKey: boolean;
+  isGeminiApiKeyConfigured: boolean;
 }
 
 const InputSection: React.FC<InputSectionProps> = ({
   onAnalyze,
   isAnalyzing,
   error: propError,
-  hasApiKey,
+  isGeminiApiKeyConfigured,
 }) => {
   const [url, setUrl] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
@@ -21,7 +21,7 @@ const InputSection: React.FC<InputSectionProps> = ({
     const trimmed = inputUrl.trim();
     if (!trimmed) return "URL is required";
     
-    if (!hasApiKey) {
+    if (!isGeminiApiKeyConfigured) {
         return "API Key is missing. Please configure your Gemini API Key in Settings.";
     }
     

@@ -1,11 +1,10 @@
-import pytest
+from src.models.analysis import CodeAnalysisResult
 from src.models.doc_gen import (
-    DocSectionJob, # New
-    GeneratedSection, # New
-    ProcessingResult,
     BatchGenerationResult,
+    DocSectionJob,  # New
+    GeneratedSection,  # New
+    ProcessingResult,
 )
-from src.models.analysis import FileAnalysis, CodeAnalysisResult
 
 
 def test_doc_section_job_instantiation():

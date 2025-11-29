@@ -1,7 +1,9 @@
-import unittest
-import tempfile
 import os
+import tempfile
+import unittest
+
 from src.analysis.parsing.python_parser import PythonParser
+
 
 class TestPythonParser(unittest.TestCase):
 
@@ -23,9 +25,9 @@ class TestPythonParser(unittest.TestCase):
         self.assertEqual(analysis.file_path, self.temp_file.name)
         self.assertEqual(analysis.language, "Python")
         self.assertFalse(analysis.is_binary)
-        
+
         self.assertEqual(len(analysis.elements), 2)
-        
+
         # Check function
         func_element = analysis.elements[0]
         self.assertEqual(func_element.name, "my_func")
@@ -36,7 +38,7 @@ class TestPythonParser(unittest.TestCase):
         class_element = analysis.elements[1]
         self.assertEqual(class_element.name, "MyClass")
         self.assertEqual(class_element.docstring, 'Class docstring.')
-        
+
         self.assertEqual(len(class_element.methods), 1)
         method_element = class_element.methods[0]
         self.assertEqual(method_element.name, "my_method")

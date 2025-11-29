@@ -1,35 +1,68 @@
 import React, { useState, useEffect } from "react";
 import { Save, Key, CheckCircle, Eye, EyeOff } from "lucide-react";
+import { apiService } from "../services/apiService"; // Import apiService
 
 interface SettingsScreenProps {
-  apiKey: string;
-  onSave: (key: string) => void;
+  onApiKeyConfiguredChange: (configured: boolean) => void;
 }
 
-const SettingsScreen: React.FC<SettingsScreenProps> = ({ apiKey: initialKey, onSave }) => {
-  const [localKey, setLocalKey] = useState(initialKey);
+const SettingsScreen: React.FC<SettingsScreenProps> = ({ onApiKeyConfiguredChange }) => {
+  const [apiKeyInput, setApiKeyInput] = useState(""); // Holds the value of the input field during editing
   const [isEditing, setIsEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
-  const [persistKey, setPersistKey] = useState(!!localStorage.getItem("docugen_gemini_api_key"));
+  const [isGeminiApiKeyConfigured, setIsGeminiApiKeyConfigured] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-      setLocalKey(initialKey);
-  }, [initialKey]);
+    const fetchStatus = async () => {
+      try {
+        setLoadingStatus(true);
+        const status = await apiService.getGeminiApiKeyStatus();
+        setIsGeminiApiKeyConfigured(status.configured);
+        setApiKeyInput(status.configured ? "**********************" : ""); // Mask key if configured
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch API key status.");
+      } finally {
+        setLoadingStatus(false);
+      }
+    };
+    fetchStatus();
+  }, []);
 
-  const handleSave = () => {
-    onSave(localKey);
-    
-    if (persistKey) {
-        localStorage.setItem("docugen_gemini_api_key", localKey);
-    } else {
-        localStorage.removeItem("docugen_gemini_api_key");
+  const handleSave = async () => {
+    setError(null);
+    try {
+      if (!apiKeyInput) {
+        throw new Error("API Key cannot be empty.");
+      }
+      await apiService.saveGeminiApiKey(apiKeyInput);
+      setSaved(true);
+      setIsEditing(false);
+      setIsGeminiApiKeyConfigured(true);
+      onApiKeyConfiguredChange(true);
+      setApiKeyInput("**********************"); // Mask key after saving
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err: any) {
+      setError(err.message || "Failed to save API key.");
     }
-
-    setSaved(true);
-    setIsEditing(false);
-    setTimeout(() => setSaved(false), 2000);
   };
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+    setShowApiKey(false); // Hide key when entering edit mode
+    setApiKeyInput(""); // Clear input when editing
+    setError(null);
+  };
+
+  if (loadingStatus) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-64px)] font-sans text-slate-500">
+        Loading settings...
+      </div>
+    );
+  }
 
   return (
     <div className="font-sans w-full">
@@ -59,22 +92,28 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ apiKey: initialKey, onS
                 Required for generating documentation and analysis.
               </p>
               
-              {!persistKey && localKey && (
-                 <div className="mb-4 p-3 bg-amber-50 text-amber-700 text-sm rounded-lg border border-amber-200 flex items-start gap-2">
-                    <span className="font-bold text-amber-600">Security Note:</span>
-                    Key is currently stored in memory only and will be lost on refresh.
+              {!isGeminiApiKeyConfigured && !isEditing && (
+                 <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200 flex items-start gap-2">
+                    <span className="font-bold text-red-600">Configuration Required:</span>
+                    No Gemini API Key found. Please enter and save your key.
                  </div>
+              )}
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200 flex items-start gap-2">
+                    <span className="font-bold text-red-600">Error:</span>
+                    {error}
+                </div>
               )}
 
               <div className="flex gap-4 mb-4">
                 <div className="relative flex-1">
                   <input
-                    type={isEditing ? (showApiKey ? "text" : "password") : "password"}
-                    value={localKey}
-                    onChange={(e) => setLocalKey(e.target.value)}
+                    type={showApiKey ? "text" : "password"}
+                    value={apiKeyInput}
+                    onChange={(e) => setApiKeyInput(e.target.value)}
                     disabled={!isEditing}
                     className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3.5 disabled:opacity-75 disabled:bg-slate-100 transition-colors pr-10"
-                    placeholder={isEditing ? "Enter your Gemini API Key" : "**********************"}
+                    placeholder={isEditing || !isGeminiApiKeyConfigured ? "Enter your Gemini API Key" : "**********************"}
                   />
                   
                   {isEditing && (
@@ -87,9 +126,15 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ apiKey: initialKey, onS
                     </button>
                   )}
 
+                  {isGeminiApiKeyConfigured && !isEditing && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600 flex items-center text-sm font-medium">
+                      <CheckCircle className="w-4 h-4 mr-1" /> Configured
+                    </div>
+                  )}
+
                   {saved && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600 flex items-center text-sm font-medium animate-in fade-in">
-                      <CheckCircle className="w-4 h-4 mr-1" /> Saved
+                      <CheckCircle className="w-4 h-4 mr-1" /> Saved!
                     </div>
                   )}
                 </div>
@@ -102,31 +147,13 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ apiKey: initialKey, onS
                   </button>
                 ) : (
                   <button
-                    onClick={() => {
-                      setIsEditing(true);
-                      setShowApiKey(false);
-                    }}
+                    onClick={handleEditClick}
                     className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-xl px-6 py-2.5 transition-colors"
                   >
-                    Edit Key
+                    {isGeminiApiKeyConfigured ? "Edit Key" : "Add Key"}
                   </button>
                 )}
               </div>
-
-              {isEditing && (
-                  <div className="flex items-center gap-2">
-                      <input 
-                        type="checkbox" 
-                        id="persistKey" 
-                        checked={persistKey} 
-                        onChange={(e) => setPersistKey(e.target.checked)}
-                        className="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500"
-                      />
-                      <label htmlFor="persistKey" className="text-sm text-slate-600 select-none cursor-pointer">
-                          Remember this key in this browser (Warning: Uses localStorage, accessible to scripts)
-                      </label>
-                  </div>
-              )}
             </div>
 
             <div className="h-px bg-slate-100"></div>

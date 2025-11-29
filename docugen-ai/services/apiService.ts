@@ -21,7 +21,7 @@ export interface BackendProcessingResult {
 }
 
 export const apiService = {
-  login: async (username: string, password: string): Promise<void> => {
+  login: async (username: string, password: string): Promise<{ userName: string }> => {
     const formData = new URLSearchParams();
     formData.append('username', username);
     formData.append('password', password);
@@ -43,9 +43,11 @@ export const apiService = {
         }
         throw new Error(msg);
     }
+    const data = await response.json();
+    return { userName: data.user_name };
   },
 
-  register: async (name: string, email: string, password: string): Promise<void> => {
+  register: async (name: string, email: string, password: string): Promise<{ userName: string }> => {
       const response = await fetch(`${API_BASE}/auth/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -68,17 +70,47 @@ export const apiService = {
           }
           throw new Error(msg);
       }
+      // After successful registration, log in the user to get a token and user_name
+      return await apiService.login(email, password);
   },
 
-  startProcessing: async (repoUrl: string, apiKey: string): Promise<string> => {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (apiKey) {
-      headers["X-API-Key"] = apiKey;
+  saveGeminiApiKey: async (apiKey: string): Promise<void> => {
+    const response = await fetch(`${API_BASE}/api/v1/settings/gemini-api-key`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_key: apiKey }),
+      credentials: "include", // Send cookies for authentication
+    });
+    if (!response.ok) {
+      const err = await response.json();
+      let msg = "Failed to save API key.";
+      if (err.detail) {
+        msg = typeof err.detail === 'string' ? err.detail : err.detail[0]?.msg || msg;
+      }
+      throw new Error(msg);
     }
+  },
 
+  getGeminiApiKeyStatus: async (): Promise<{ configured: boolean }> => {
+    const response = await fetch(`${API_BASE}/api/v1/settings/gemini-api-key-status`, {
+      method: "GET",
+      credentials: "include", // Send cookies for authentication
+    });
+    if (!response.ok) {
+      const err = await response.json();
+      let msg = "Failed to get API key status.";
+      if (err.detail) {
+        msg = typeof err.detail === 'string' ? err.detail : err.detail[0]?.msg || msg;
+      }
+      throw new Error(msg);
+    }
+    return await response.json();
+  },
+
+  startProcessing: async (repoUrl: string): Promise<string> => {
     const response = await fetch(`${API_BASE}/process`, {
       method: "POST",
-      headers: headers,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: repoUrl }),
       credentials: "include", // Send cookies
     });

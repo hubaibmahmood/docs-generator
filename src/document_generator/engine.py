@@ -3,7 +3,7 @@ from pathlib import Path
 
 from src.document_generator.agent import generate_section
 from src.document_generator.markdown import write_markdown_to_file
-from src.document_generator.strategies import get_all_strategies, DocumentationStrategy
+from src.document_generator.strategies import DocumentationStrategy, get_all_strategies
 from src.document_generator.validator import validate_analysis_result
 from src.models.analysis import CodeAnalysisResult
 from src.models.doc_gen import BatchGenerationResult, DocSectionJob, ProcessingResult
@@ -83,7 +83,7 @@ class DocumentGeneratorEngine:
         api_key: str = None,
     ) -> BatchGenerationResult:
         """Main entry point: accepts analysis, processes strategies, returns batch result."""
-        
+
         if not validate_analysis_result(analysis_result):
              logger.warning("Invalid analysis result received. Skipping documentation generation.")
              return BatchGenerationResult(

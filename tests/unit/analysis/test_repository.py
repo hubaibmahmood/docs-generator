@@ -1,8 +1,11 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import git
+
 from src.analysis.repository import clone_repository
 from src.common.exceptions import RepositoryError
-import git
+
 
 class TestRepository(unittest.TestCase):
 
@@ -30,7 +33,7 @@ class TestRepository(unittest.TestCase):
         # Act & Assert
         with self.assertRaises(RepositoryError) as context:
             clone_repository(repo_url, destination)
-        
+
         self.assertTrue("Failed to clone repository" in str(context.exception))
         mock_clone_from.assert_called_once_with(repo_url, destination)
 
@@ -42,7 +45,7 @@ class TestRepository(unittest.TestCase):
         # Act & Assert
         with self.assertRaises(RepositoryError) as context:
             clone_repository(repo_url, destination)
-        
+
         self.assertTrue("Invalid repository URL protocol" in str(context.exception))
 
     def test_clone_repository_command_injection(self):
@@ -53,7 +56,7 @@ class TestRepository(unittest.TestCase):
         # Act & Assert
         with self.assertRaises(RepositoryError) as context:
             clone_repository(repo_url, destination)
-        
+
         self.assertTrue("potential command injection" in str(context.exception))
 
     def test_clone_repository_invalid_characters(self):
@@ -64,7 +67,7 @@ class TestRepository(unittest.TestCase):
         # Act & Assert
         with self.assertRaises(RepositoryError) as context:
             clone_repository(repo_url, destination)
-        
+
         self.assertTrue("illegal characters" in str(context.exception))
 
 if __name__ == '__main__':

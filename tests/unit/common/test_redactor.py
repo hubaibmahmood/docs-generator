@@ -1,5 +1,7 @@
 import unittest
+
 from src.common.security.redactor import SecretRedactor
+
 
 class TestSecretRedactor(unittest.TestCase):
 

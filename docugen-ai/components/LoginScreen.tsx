@@ -13,7 +13,7 @@ import {
 import { apiService } from "../services/apiService";
 
 interface LoginScreenProps {
-  onLoginSuccess: (username: string) => void;
+  onLoginSuccess: (userName: string) => void;
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
@@ -26,10 +26,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccessMessage("");
     setIsLoading(true);
 
     // Validation Logic
@@ -59,12 +61,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       }
 
       try {
-        // Register
-        await apiService.register(name, email, password);
-        // Then Auto-Login
-        await apiService.login(email, password);
+        await apiService.register(name, email, password); // Register is now handled separately.
         setIsLoading(false);
-        onLoginSuccess(name || email);
+        setIsRegistering(false); // Go back to login form
+        setEmail(""); // Clear for explicit login
+        setPassword("");
+        setConfirmPassword("");
+        setName("");
+        setSuccessMessage("Registration successful! Please log in.");
       } catch (err: any) {
         setIsLoading(false);
         setError(err.message || "Registration failed.");
@@ -73,10 +77,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     }
 
     try {
-      // Backend expects 'username', we use email for now
-      await apiService.login(email, password);
+      const { userName } = await apiService.login(email, password);
       setIsLoading(false);
-      onLoginSuccess(email);
+      onLoginSuccess(userName);
     } catch (err: any) {
       setIsLoading(false);
       setError(err.message || "Authentication failed.");
@@ -88,13 +91,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     // Simulate social login delay
     setTimeout(() => {
       setIsLoading(false);
-      onLoginSuccess("GitHub User");
+      onLoginSuccess("GitHub User"); // Placeholder for social login user name
     }, 1500);
   };
 
   const toggleMode = () => {
     setIsRegistering(!isRegistering);
     setError("");
+    setSuccessMessage("");
     setPassword("");
     setConfirmPassword("");
   };
@@ -232,6 +236,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
                 {error}
+              </div>
+            )}
+            {successMessage && (
+              <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 text-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                {successMessage}
               </div>
             )}
 
