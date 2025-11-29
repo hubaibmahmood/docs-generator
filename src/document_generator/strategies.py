@@ -1,8 +1,8 @@
-import json
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 
-from src.models.analysis import ClassElement, CodeAnalysisResult, FileAnalysis, FunctionElement
+from src.common.security.redactor import SecretRedactor
+from src.models.analysis import ClassElement, CodeAnalysisResult, FunctionElement
 
 
 class DocumentationStrategy(ABC):
@@ -19,16 +19,26 @@ class DocumentationStrategy(ABC):
         pass
 
     @abstractmethod
-    def gather_context(self, analysis: CodeAnalysisResult) -> str:
-        """Extracts relevant information from the analysis result."""
+    def gather_context_raw(self, analysis: CodeAnalysisResult) -> str:
+        """
+        Extracts relevant information from the analysis result.
+        Subclasses must implement this instead of gather_context.
+        """
         pass
+
+    def gather_context(self, analysis: CodeAnalysisResult) -> str:
+        """
+        Public method to gather and automatically redact context.
+        """
+        raw_context = self.gather_context_raw(analysis)
+        return SecretRedactor.redact(raw_context)
 
     @abstractmethod
     def get_prompt(self, context: str) -> str:
         """Constructs the prompt for the AI Agent."""
         pass
 
-    def _format_elements(self, elements: List[Any]) -> str:
+    def _format_elements(self, elements: list[Any]) -> str:
         """Helper to format elements for context."""
         output = []
         for el in elements:
@@ -49,8 +59,8 @@ class ReadmeStrategy(DocumentationStrategy):
     section_name = "Project Overview"
     output_filename = "README.md"
 
-    def gather_context(self, analysis: CodeAnalysisResult) -> str:
-        # Summarize file tree and key files
+    def gather_context_raw(self, analysis: CodeAnalysisResult) -> str:
+        """Summarize file tree and key files"""
         file_list = list(analysis.file_analysis.keys())
         context = f"Total Files: {len(file_list)}\nFile List:\n" + "\n".join(file_list[:50])
 
@@ -81,21 +91,18 @@ class ArchitectureStrategy(DocumentationStrategy):
     section_name = "Architecture"
     output_filename = "architecture.md"
 
-    def gather_context(self, analysis: CodeAnalysisResult) -> str:
-        # Use file tree and core modules
+    def gather_context_raw(self, analysis: CodeAnalysisResult) -> str:
+        """Use file tree and core modules"""
         # Filter for 'src' or 'app' or 'lib'
         core_files = [f for f in analysis.file_analysis.keys() if "/" in f]
-        context = f"File Structure:\n" + "\n".join(core_files)
+        context = "File Structure:\n" + "\n".join(core_files)
 
         # Add content of key files to provide architectural context
         context += "\n\nKey File Contents:\n"
         count = 0
         for f in core_files:
             # Heuristic: prioritize typical entry points or core logic
-            if (
-                any(x in f.lower() for x in ["main", "app", "server", "config", "models", "routes"])
-                and count < 10
-            ):
+            if any(x in f.lower() for x in ["main", "app", "server", "config", "models", "routes"]) and count < 10:
                 if f in analysis.file_analysis and analysis.file_analysis[f].content:
                     context += f"\n--- {f} ---\n{analysis.file_analysis[f].content[:2000]}\n"
                     count += 1
@@ -115,8 +122,8 @@ class ApiReferenceStrategy(DocumentationStrategy):
     section_name = "API Reference"
     output_filename = "api-reference.md"
 
-    def gather_context(self, analysis: CodeAnalysisResult) -> str:
-        # Heuristic: Include files with 'api', 'route', 'controller' in path
+    def gather_context_raw(self, analysis: CodeAnalysisResult) -> str:
+        """Heuristic: Include files with 'api', 'route', 'controller' in path"""
         # OR functions starting with 'get_', 'post_', 'create_', 'update_' in likely API files
         relevant_content = []
         for file_path, file_data in analysis.file_analysis.items():
@@ -145,8 +152,8 @@ class DataModelsStrategy(DocumentationStrategy):
     section_name = "Data Models"
     output_filename = "database-models.md"
 
-    def gather_context(self, analysis: CodeAnalysisResult) -> str:
-        # Heuristic: Include files with 'model', 'schema', 'entity' in path
+    def gather_context_raw(self, analysis: CodeAnalysisResult) -> str:
+        """Heuristic: Include files with 'model', 'schema', 'entity' in path"""
         relevant_content = []
         for file_path, file_data in analysis.file_analysis.items():
             if any(k in file_path.lower() for k in ["model", "schema", "entity", "dto"]):
@@ -171,8 +178,8 @@ class GettingStartedStrategy(DocumentationStrategy):
     section_name = "Getting Started"
     output_filename = "getting-started.md"
 
-    def gather_context(self, analysis: CodeAnalysisResult) -> str:
-        # Look for config files
+    def gather_context_raw(self, analysis: CodeAnalysisResult) -> str:
+        """Look for config files"""
         relevant_files = [
             "pyproject.toml",
             "requirements.txt",
@@ -202,7 +209,7 @@ class GettingStartedStrategy(DocumentationStrategy):
         )
 
 
-def get_all_strategies() -> List[DocumentationStrategy]:
+def get_all_strategies() -> list[DocumentationStrategy]:
     return [
         ReadmeStrategy(),
         GettingStartedStrategy(),

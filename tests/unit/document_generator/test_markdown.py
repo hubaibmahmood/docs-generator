@@ -1,5 +1,6 @@
+
 import pytest
-from pathlib import Path
+
 from src.document_generator.markdown import write_markdown_to_file
 
 

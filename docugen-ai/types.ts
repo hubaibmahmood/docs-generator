@@ -22,7 +22,7 @@ export interface GeneratedDoc {
 }
 
 export interface AnalysisStatus {
-  step: 'idle' | 'scanning' | 'analyzing' | 'complete' | 'error';
+  step: 'idle' | 'scanning' | 'analyzing' | 'complete' | 'error' | 'reconnecting';
   message: string;
   progress: number;
 }

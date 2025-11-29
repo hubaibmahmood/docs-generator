@@ -1,5 +1,8 @@
+
+
 from pydantic import BaseModel, Field
-from typing import List, Optional
+
+from src.models.analysis import CodeAnalysisResult
 
 
 class DocSectionJob(BaseModel):
@@ -13,7 +16,7 @@ class DocSectionJob(BaseModel):
 class GeneratedSection(BaseModel):
     """The raw markdown output from the AI Agent."""
     content: str
-    title: Optional[str] = None
+    title: str | None = None
 
 
 class ProcessingResult(BaseModel):
@@ -21,11 +24,9 @@ class ProcessingResult(BaseModel):
     section_name: str
     output_path: str
     status: str # "success", "skipped", "failed"
-    error: Optional[str] = None
-    markdown_content: Optional[str] = None
+    error: str | None = None
+    markdown_content: str | None = None
 
-
-from src.models.analysis import CodeAnalysisResult
 
 class BatchGenerationResult(BaseModel):
     """The aggregate result of the entire generation process."""
@@ -33,5 +34,8 @@ class BatchGenerationResult(BaseModel):
     processed: int
     skipped: int
     failed: int
-    results: List[ProcessingResult] = Field(default_factory=list)
-    source_analysis: Optional[CodeAnalysisResult] = None
+    results: list[ProcessingResult] = Field(default_factory=list)
+    source_analysis: CodeAnalysisResult | None = None
+
+class UserGeminiApiKey(BaseModel):
+    api_key: str

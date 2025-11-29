@@ -1,15 +1,14 @@
-import re
 import fnmatch
-from typing import Dict, Any
-from src.analysis.repository import clone_repository # This will be unused in analyze_local_path
-from src.analysis.parsing.factory import ParserFactory
-from src.models.analysis import CodeAnalysisResult, FileAnalysis, AnalysisError
-from src.common.exceptions import RepositoryError, ParsingError
-from src.common.constants import DEFAULT_EXCLUSION_PATTERNS
-import os
-import shutil
-import git
 import logging
+import os
+import re
+from typing import Any
+
+from src.analysis.parsing.factory import ParserFactory
+from src.analysis.repository import clone_repository  # This will be unused in analyze_local_path
+from src.common.constants import DEFAULT_EXCLUSION_PATTERNS
+from src.common.exceptions import ParsingError, RepositoryError
+from src.models.analysis import AnalysisError, CodeAnalysisResult, FileAnalysis
 
 logger = logging.getLogger(__name__)
 
@@ -27,24 +26,26 @@ class AnalysisOrchestrator:
         """Internal method to perform the actual file walking and parsing."""
         analysis_result = CodeAnalysisResult()
         file_analysis_map = {}
-        file_tree_dict: Dict[str, Any] = {"name": repo_name, "path": "/", "children": []}
+        file_tree_dict: dict[str, Any] = {"name": repo_name, "path": "/", "children": []}
 
         # Determine exclusion patterns
         exclusion_patterns = list(DEFAULT_EXCLUSION_PATTERNS)
         has_specify = os.path.isdir(os.path.join(base_path, ".specify"))
         has_gemini = os.path.isdir(os.path.join(base_path, ".gemini"))
-        
+
         if has_specify and has_gemini:
             logger.info("Detected Spec-Driven project structure (.specify and .gemini found). Excluding 'specs' and 'history' directories.")
             exclusion_patterns.extend(["specs", "history"])
 
         for root, dirs, files in os.walk(base_path):
             # Filter directories in-place to prevent os.walk from traversing them
-            dirs[:] = [d for d in dirs if not any(fnmatch.fnmatch(d, pattern) for pattern in exclusion_patterns)]
-            
+            # Also filter out symlinks to directories to prevent traversal
+            dirs[:] = [d for d in dirs if not any(fnmatch.fnmatch(d, pattern) for pattern in exclusion_patterns)
+                       and not os.path.islink(os.path.join(root, d))]
+
             # Filter files to ignore them
             files = [f for f in files if not any(fnmatch.fnmatch(f, pattern) for pattern in exclusion_patterns)]
-            
+
             relative_root = os.path.relpath(root, base_path)
             current_level_in_tree = file_tree_dict
 
@@ -64,17 +65,28 @@ class AnalysisOrchestrator:
                         current_level_in_tree = new_dir
 
             for dir_name in dirs:
+                # Double check it's not a link (though dirs[:] filter handles traversal, we also want to exclude from tree)
+                if os.path.islink(os.path.join(root, dir_name)):
+                     logger.warning(f"Skipping symlink directory: {os.path.join(root, dir_name)}")
+                     continue
+
                 current_level_in_tree["children"].append({
                     "name": dir_name,
                     "path": os.path.join(current_level_in_tree["path"], dir_name),
                     "type": "dir",
                     "children": []
                 })
-            
+
             for file_name in files:
                 file_path = os.path.join(root, file_name)
+
+                # Skip file symlinks
+                if os.path.islink(file_path):
+                    logger.warning(f"Skipping symlink file: {file_path}")
+                    continue
+
                 relative_file_path = os.path.relpath(file_path, base_path)
-                
+
                 parser = ParserFactory.get_parser(file_path)
                 is_binary = False
                 content: str | None = None
@@ -84,12 +96,12 @@ class AnalysisOrchestrator:
                     try:
                         # Check file size first (skip if > 1MB)
                         if os.path.getsize(file_path) < 1 * 1024 * 1024:
-                            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            with open(file_path, encoding='utf-8', errors='ignore') as f:
                                 content = f.read()
                     except Exception:
                         # If reading fails (e.g. binary file not detected earlier), ignore content
                         pass
-                
+
                 if parser:
                     logger.debug(f"Parsing file: {relative_file_path} with {type(parser).__name__}")
                     try:
@@ -113,7 +125,7 @@ class AnalysisOrchestrator:
                     # However, 'ParserFactory.get_parser' returning None doesn't guarantee it's binary, just unknown extension.
                     # Let's check if we successfully read content.
                     final_is_binary = is_binary if content is None else False
-                    
+
                     logger.info(f"No parser found for file: {relative_file_path}. Treating as binary={final_is_binary}.")
                     file_analysis_map[relative_file_path] = FileAnalysis(
                         file_path=relative_file_path,
@@ -125,14 +137,14 @@ class AnalysisOrchestrator:
                         content=content,
                         errors=[AnalysisError(file_path=relative_file_path, error="No suitable parser found.")]
                     )
-                
+
                 current_level_in_tree["children"].append({
                     "name": file_name,
                     "path": os.path.join(relative_root, file_name) if relative_root != "." else file_name,
                     "type": "file",
                     "is_binary": is_binary
                 })
-        
+
         analysis_result.file_analysis = file_analysis_map
         analysis_result.file_tree = file_tree_dict
         return analysis_result
@@ -150,7 +162,7 @@ class AnalysisOrchestrator:
         """
         logger.info(f"Starting analysis for repository: {repo_url}")
         analysis_result = CodeAnalysisResult()
-        
+
         try:
             logger.info(f"Cloning repository {repo_url} to {output_dir}")
             repo = clone_repository(repo_url, output_dir)
@@ -160,7 +172,7 @@ class AnalysisOrchestrator:
             # Extract repository name from URL for a more meaningful file_tree root
             match = re.search(r'/([^/]+?)(?:\.git)?$', repo_url)
             repo_name = match.group(1) if match else os.path.basename(cloned_repo_actual_path)
-            
+
             analysis_result = self._perform_analysis(cloned_repo_actual_path, repo_name)
             logger.info(f"Finished analysis for repository: {repo_url}")
 

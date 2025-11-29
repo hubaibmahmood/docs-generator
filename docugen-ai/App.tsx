@@ -2,21 +2,72 @@ import React, { useState } from 'react';
 import InputSection from './components/InputSection';
 import Sidebar from './components/Sidebar';
 import DocViewer from './components/DocViewer';
+import LoginScreen from './components/LoginScreen';
+import Dashboard from './components/Dashboard';
+import Header from './components/Header';
+import SettingsScreen from './components/SettingsScreen';
 import { FileNode, GeneratedDoc, AnalysisStatus, FileType } from './types';
 import { apiService, transformFileTree, transformGeneratedDocs } from './services/apiService';
 
 function App() {
   // App State
-  const [step, setStep] = useState<'input' | 'workspace'>('input');
+  const [step, setStep] = useState<'auth' | 'dashboard' | 'input' | 'settings' | 'workspace'>('auth');
   const [status, setStatus] = useState<AnalysisStatus>({ step: 'idle', message: '', progress: 0 });
   const [files, setFiles] = useState<FileNode[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("");
+  const [isGeminiApiKeyConfigured, setIsGeminiApiKeyConfigured] = useState<boolean>(false);
+  
+  // Effect to fetch API key status on login/app mount
+  React.useEffect(() => {
+    if (step !== 'auth') { // Only fetch if authenticated
+      const fetchApiKeyStatus = async () => {
+        try {
+          const status = await apiService.getGeminiApiKeyStatus();
+          setIsGeminiApiKeyConfigured(status.configured);
+        } catch (error) {
+          console.error("Failed to fetch API key status:", error);
+          setIsGeminiApiKeyConfigured(false); // Assume not configured on error
+        }
+      };
+      fetchApiKeyStatus();
+    }
+  }, [step]); // Re-run when step changes
   
   // Cache for generated docs
   const [docsCache, setDocsCache] = useState<Record<string, GeneratedDoc>>({});
   const [isLoadingDoc, setIsLoadingDoc] = useState(false);
 
   // --- Actions ---
+
+  const handleLoginSuccess = (user: string) => {
+    setUserName(user);
+    setStep('dashboard');
+  };
+
+  const handleNavigate = (path: 'input' | 'settings') => {
+    setStep(path);
+  };
+
+  const handleLogout = () => {
+    setStep('auth');
+    setUserName("");
+    setFiles([]);
+    setDocsCache({});
+    setSelectedId(null);
+    setStatus({ step: 'idle', message: '', progress: 0 });
+  };
+
+  const handleBackToDashboard = () => {
+    setStep('dashboard');
+    // Optionally clear current analysis state if leaving workspace
+    if (step === 'workspace') {
+        setFiles([]);
+        setDocsCache({});
+        setSelectedId(null);
+        setStatus({ step: 'idle', message: '', progress: 0 });
+    }
+  };
 
   const handleAnalyze = async (url: string) => {
     try {
@@ -26,11 +77,16 @@ function App() {
       
       setStatus({ step: 'analyzing', message: 'Processing Repository...', progress: 30 });
 
-      // Poll for completion
+      // Polling for completion with retry logic
+      const MAX_POLLING_RETRIES = 3;
+      // POLLING_RETRY_DELAY_MS is implicit in setInterval, but could be added for exponential backoff if desired
+      let pollingRetryCount = 0;
+
       const pollInterval = setInterval(async () => {
         try {
           const taskStatus = await apiService.getStatus(taskId);
-          
+          pollingRetryCount = 0; // Reset retry count on successful status check
+
           if (taskStatus.status === 'SUCCESS') {
             clearInterval(pollInterval);
             setStatus({ step: 'complete', message: 'Processing Complete', progress: 100 });
@@ -59,16 +115,30 @@ function App() {
             
           } else if (taskStatus.status === 'FAILED') {
             clearInterval(pollInterval);
-            setStatus({ step: 'error', message: 'Analysis Failed', progress: 0 });
+            const errorMessage = taskStatus.errors && taskStatus.errors.length > 0 
+              ? taskStatus.errors[0].error 
+              : 'Analysis Failed';
+            setStatus({ step: 'error', message: errorMessage, progress: 0 });
           } else {
             // Still pending/in_progress
              setStatus(prev => ({ ...prev, progress: prev.progress < 90 ? prev.progress + 5 : 90 }));
           }
         } catch (e) {
-          clearInterval(pollInterval);
-          setStatus({ step: 'error', message: 'Connection Lost', progress: 0 });
+          console.error("Polling error:", e);
+          if (pollingRetryCount < MAX_POLLING_RETRIES) {
+            pollingRetryCount++;
+            setStatus(prev => ({
+              ...prev,
+              message: `Connection Lost. Retrying ${pollingRetryCount}/${MAX_POLLING_RETRIES}...`,
+              step: 'reconnecting' // New step to indicate reconnection attempt
+            }));
+            // The setInterval will naturally retry after 2 seconds
+          } else {
+            clearInterval(pollInterval);
+            setStatus({ step: 'error', message: 'Connection Lost Permanently', progress: 0 });
+          }
         }
-      }, 2000);
+      }, 2000); // Original polling interval
 
     } catch (error) {
        setStatus({ step: 'error', message: 'Failed to start analysis', progress: 0 });
@@ -111,19 +181,50 @@ function App() {
      setSelectedId(doc.id);
   };
 
-  const handleBackToInput = () => {
-    setStep('input');
-    setFiles([]);
-    setDocsCache({});
-    setSelectedId(null);
-    setStatus({ step: 'idle', message: '', progress: 0 });
-    window.location.hash = ''; // Clear the URL hash
-  };
-
   // --- Render ---
 
+  if (step === 'auth') {
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  if (step === 'dashboard') {
+    return (
+      <>
+        <Header userName={userName} onLogout={handleLogout} />
+        <Dashboard 
+            userName={userName}
+            onNavigate={handleNavigate} 
+            onLogout={handleLogout}
+        />
+      </>
+    );
+  }
+
+  if (step === 'settings') {
+    return (
+      <>
+        <Header userName={userName} onLogout={handleLogout} onBack={handleBackToDashboard} />
+        <SettingsScreen 
+            onApiKeyConfiguredChange={setIsGeminiApiKeyConfigured}
+        />
+      </>
+    );
+  }
+
   if (step === 'input') {
-    return <InputSection onAnalyze={handleAnalyze} isAnalyzing={status.step !== 'idle' && status.step !== 'error'} />;
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Header userName={userName} onLogout={handleLogout} onBack={handleBackToDashboard} />
+        <div className="flex-1 flex items-center justify-center">
+            <InputSection 
+                onAnalyze={handleAnalyze} 
+                isAnalyzing={status.step !== 'idle' && status.step !== 'error'}
+                error={status.step === 'error' ? status.message : undefined}
+                isGeminiApiKeyConfigured={isGeminiApiKeyConfigured}
+            />
+        </div>
+      </div>
+    );
   }
 
   const currentDoc = selectedId ? docsCache[selectedId] : null;
@@ -140,7 +241,7 @@ function App() {
         onSelectFile={handleFileSelect} 
         onSelectSpecial={loadSpecialDoc}
         onSelectDoc={handleDocSelect}
-        onBack={handleBackToInput}
+        onBack={handleBackToDashboard}
         selectedId={selectedId}
       />
       

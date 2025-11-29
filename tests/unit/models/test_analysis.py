@@ -1,13 +1,14 @@
 from src.models.analysis import (
-    MethodElement,
-    FunctionElement,
-    ClassElement,
-    Dependency,
     AnalysisError,
-    FileAnalysis,
+    ClassElement,
     CodeAnalysisResult,
+    Dependency,
     ExtractedElement,
+    FileAnalysis,
+    FunctionElement,
+    MethodElement,
 )
+
 
 def test_method_element_creation():
     method = MethodElement(name="test_method", docstring="Doc", return_type="int")
@@ -50,7 +51,7 @@ def test_class_element_defaults():
 def test_extracted_element_union():
     func_elem = FunctionElement(name="test_func")
     class_elem = ClassElement(name="TestClass")
-    
+
     extracted_func: ExtractedElement = func_elem
     extracted_class: ExtractedElement = class_elem
 

@@ -1,5 +1,5 @@
-import pytest
-from src.models.analysis import CodeAnalysisResult, FileAnalysis, AnalysisError
+from src.models.analysis import AnalysisError, CodeAnalysisResult, FileAnalysis
+
 # from src.document_generator.validator import validate_analysis_result # This will cause an error as it's not implemented yet.
 
 

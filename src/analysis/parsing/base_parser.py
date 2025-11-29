@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Set
 
 from src.models.analysis import FileAnalysis
+
 
 class BaseParser(ABC):
     @property
     @abstractmethod
-    def supported_file_extensions(self) -> Set[str]:
+    def supported_file_extensions(self) -> set[str]:
         """Returns a set of file extensions that this parser supports (e.g., {'.py', '.pyw'})."""
         pass
 

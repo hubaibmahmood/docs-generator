@@ -1,12 +1,13 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+
 from dotenv import load_dotenv
-import os
+from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables before importing other modules that might rely on them
 load_dotenv()
 
-from . import routes
+from . import auth, routes
+from .auth import get_current_user_from_cookie
 
 app = FastAPI(
     title="Code Analysis Engine API",
@@ -23,7 +24,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(routes.router)
+# Public Routes (Login)
+app.include_router(auth.router, prefix="/auth")
+
+# Protected Routes (Analysis)
+# We use dependencies=[Depends(get_current_user_from_cookie)] to protect all routes in this router
+app.include_router(routes.router, dependencies=[Depends(get_current_user_from_cookie)])
 
 @app.get("/")
 async def read_root():

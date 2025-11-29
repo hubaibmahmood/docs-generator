@@ -1,9 +1,10 @@
-from typing import Set
-from src.analysis.parsing.base_parser import BaseParser
-from src.models.analysis import FileAnalysis, FunctionElement, ClassElement, MethodElement, AnalysisError
-from tree_sitter_language_pack import get_parser
-from src.common.exceptions import ParsingError
 import logging
+
+from tree_sitter_language_pack import get_parser
+
+from src.analysis.parsing.base_parser import BaseParser
+from src.common.exceptions import ParsingError
+from src.models.analysis import AnalysisError, ClassElement, FileAnalysis, FunctionElement, MethodElement
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ class PythonParser(BaseParser):
         self.parser = get_parser("python")
 
     @property
-    def supported_file_extensions(self) -> Set[str]:
+    def supported_file_extensions(self) -> set[str]:
         return {".py", ".pyw"}
 
     def parse(self, file_path: str) -> FileAnalysis:
@@ -38,13 +39,13 @@ class PythonParser(BaseParser):
         try:
             with open(file_path, "rb") as f:
                 content = f.read()
-        except IOError as e:
+        except OSError as e:
             logger.error(f"IOError while reading file {file_path}: {e}")
             raise ParsingError(f"Could not read file {file_path}: {e}")
 
         tree = self.parser.parse(content)
         root_node = tree.root_node
-        
+
         elements = []
         errors = []
 
@@ -62,7 +63,7 @@ class PythonParser(BaseParser):
                     class_element = self._extract_class(node, content)
                     elements.append(class_element)
                     logger.debug(f"Extracted class: {class_element.name} from {file_path}")
-        
+
         logger.info(f"Finished parsing Python file: {file_path}")
         return FileAnalysis(
             file_path=file_path,
@@ -80,10 +81,10 @@ class PythonParser(BaseParser):
         """
         name_node = node.child_by_field_name("name")
         name = content[name_node.start_byte:name_node.end_byte].decode("utf-8")
-        
+
         body_node = node.child_by_field_name("body")
         docstring = self._get_docstring(body_node, content)
-        
+
         return_type = None
         return_type_node = node.child_by_field_name("return_type")
         if return_type_node:
@@ -108,14 +109,14 @@ class PythonParser(BaseParser):
                     methods.append(self._extract_method(child, content))
 
         return ClassElement(name=name, docstring=docstring, methods=methods)
-    
+
     def _extract_method(self, node, content: bytes) -> MethodElement:
         """
         Extracts a method definition from a tree-sitter node.
         """
         name_node = node.child_by_field_name("name")
         name = content[name_node.start_byte:name_node.end_byte].decode("utf-8")
-        
+
         body_node = node.child_by_field_name("body")
         docstring = self._get_docstring(body_node, content)
 

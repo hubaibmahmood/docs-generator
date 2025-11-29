@@ -1,9 +1,11 @@
-import unittest
-from unittest.mock import patch, MagicMock
 import os
 import shutil
+import unittest
+from unittest.mock import MagicMock, patch
+
 from src.analysis.orchestrator import AnalysisOrchestrator
-from src.models.analysis import CodeAnalysisResult, FileAnalysis, AnalysisError, FunctionElement
+from src.models.analysis import CodeAnalysisResult, FileAnalysis, FunctionElement
+
 
 class TestAnalysisOrchestrator(unittest.TestCase):
 
@@ -21,7 +23,7 @@ class TestAnalysisOrchestrator(unittest.TestCase):
         # Arrange
         orchestrator = AnalysisOrchestrator()
         repo_url = "https://github.com/test/repo"
-        
+
         # Mock cloning
         mock_repo = MagicMock()
         mock_repo.working_dir = self.test_repo_dir
@@ -83,7 +85,7 @@ class TestAnalysisOrchestrator(unittest.TestCase):
         # Arrange
         orchestrator = AnalysisOrchestrator()
         repo_url = "https://github.com/test/repo"
-        
+
         mock_repo = MagicMock()
         mock_repo.working_dir = self.test_repo_dir
         mock_clone_repository.return_value = mock_repo
