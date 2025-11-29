@@ -95,28 +95,8 @@ const Dashboard: React.FC<DashboardProps> = ({
           <h2 className="text-lg font-bold text-slate-900 mb-4">
             Recent Projects
           </h2>
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            {[1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className="p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors flex items-center justify-between group cursor-pointer"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-slate-500" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
-                      demo-project-v{item}
-                    </h4>
-                    <p className="text-xs text-slate-500">
-                      Updated 2 days ago • TypeScript
-                    </p>
-                  </div>
-                </div>
-                <div className="text-sm text-slate-400">View Docs &rarr;</div>
-              </div>
-            ))}
+          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">
+            Coming Soon!
           </div>
         </div>
       </div>
