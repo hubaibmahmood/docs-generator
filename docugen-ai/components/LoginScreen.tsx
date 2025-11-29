@@ -13,7 +13,7 @@ import {
 import { apiService } from "../services/apiService";
 
 interface LoginScreenProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (username: string) => void;
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
@@ -35,51 +35,51 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     // Validation Logic
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-        setIsLoading(false);
-        setError("Please enter a valid email address.");
-        return;
+      setIsLoading(false);
+      setError("Please enter a valid email address.");
+      return;
     }
 
     if (password.length < 4) {
-        setIsLoading(false);
-        setError("Password must be at least 4 characters.");
-        return;
+      setIsLoading(false);
+      setError("Password must be at least 4 characters.");
+      return;
     }
 
     if (isRegistering) {
-        if (name.length < 2) {
-            setIsLoading(false);
-            setError("Please enter your name.");
-            return;
-        }
-        if (password !== confirmPassword) {
-            setIsLoading(false);
-            setError("Passwords do not match.");
-            return;
-        }
-        
-        try {
-             // Register
-             await apiService.register(name, email, password);
-             // Then Auto-Login
-             await apiService.login(email, password);
-             setIsLoading(false);
-             onLoginSuccess();
-        } catch (err: any) {
-            setIsLoading(false);
-            setError(err.message || "Registration failed.");
-        }
+      if (name.length < 2) {
+        setIsLoading(false);
+        setError("Please enter your name.");
         return;
+      }
+      if (password !== confirmPassword) {
+        setIsLoading(false);
+        setError("Passwords do not match.");
+        return;
+      }
+
+      try {
+        // Register
+        await apiService.register(name, email, password);
+        // Then Auto-Login
+        await apiService.login(email, password);
+        setIsLoading(false);
+        onLoginSuccess(name || email);
+      } catch (err: any) {
+        setIsLoading(false);
+        setError(err.message || "Registration failed.");
+      }
+      return;
     }
 
     try {
-        // Backend expects 'username', we use email for now
-        await apiService.login(email, password); 
-        setIsLoading(false);
-        onLoginSuccess();
+      // Backend expects 'username', we use email for now
+      await apiService.login(email, password);
+      setIsLoading(false);
+      onLoginSuccess(email);
     } catch (err: any) {
-        setIsLoading(false);
-        setError(err.message || "Authentication failed.");
+      setIsLoading(false);
+      setError(err.message || "Authentication failed.");
     }
   };
 
@@ -88,7 +88,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     // Simulate social login delay
     setTimeout(() => {
       setIsLoading(false);
-      onLoginSuccess();
+      onLoginSuccess("GitHub User");
     }, 1500);
   };
 
@@ -118,8 +118,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </h1>
           <p className="text-slate-400">
             {isRegistering
-              ? "Join DocuGen to start documenting"
-              : "Sign in to access your DocuGen workspace"}
+              ? "Join DocGen to start documenting"
+              : "Sign in to access your DocGen workspace"}
           </p>
         </div>
 
@@ -189,7 +189,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -214,7 +218,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
                   >
-                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>

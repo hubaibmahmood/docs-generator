@@ -217,3 +217,6 @@ See `.specify/memory/constitution.md` for code quality, testing, performance, se
 
 ## Recent Changes
 - 001-code-analysis-engine: Added Python 3.12+ + `uv`, `GitPython`, `tree-sitter`, `tree-sitter-python` bindings, `pyyaml` (for API spec), `fastapi` (for API), `uvicorn` (for serving)
+- **Authentication System:** Implemented a full authentication system with login and registration endpoints.
+  - Frontend: Integrated `LoginScreen` component with form validation and password visibility toggle. `apiService.ts` updated to handle login/register.
+  - Backend: Utilized FastAPI, SQLAlchemy (SQLite for local), `python-jose`, `passlib`, `bcrypt`, `email-validator` to manage users and secure API routes with HTTP-Only cookies.

@@ -16,6 +16,7 @@ async def process_section(
     analysis_result: CodeAnalysisResult,
     output_dir: Path = Path("generated-docs"),
     write_to_disk: bool = True,
+    api_key: str = None,
 ) -> ProcessingResult:
     """
     Processes a single documentation section: gathers context, calls agent, saves result.
@@ -42,7 +43,7 @@ async def process_section(
         )
 
         # 3. Generate Content
-        generated_section = await generate_section(job)
+        generated_section = await generate_section(job, api_key=api_key)
         content = generated_section.content
 
         # 4. Save to Disk
@@ -79,6 +80,7 @@ class DocumentGeneratorEngine:
         base_dir: Path = Path("."),
         output_dir: Path = Path("generated-docs"),
         write_to_disk: bool = True,
+        api_key: str = None,
     ) -> BatchGenerationResult:
         """Main entry point: accepts analysis, processes strategies, returns batch result."""
         
@@ -96,7 +98,7 @@ class DocumentGeneratorEngine:
 
         for strategy in strategies:
             result = await process_section(
-                strategy, analysis_result, output_dir=output_dir, write_to_disk=write_to_disk
+                strategy, analysis_result, output_dir=output_dir, write_to_disk=write_to_disk, api_key=api_key
             )
             results.append(result)
 

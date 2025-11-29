@@ -70,10 +70,15 @@ export const apiService = {
       }
   },
 
-  startProcessing: async (repoUrl: string): Promise<string> => {
+  startProcessing: async (repoUrl: string, apiKey: string): Promise<string> => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (apiKey) {
+      headers["X-API-Key"] = apiKey;
+    }
+
     const response = await fetch(`${API_BASE}/process`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headers,
       body: JSON.stringify({ url: repoUrl }),
       credentials: "include", // Send cookies
     });

@@ -4,9 +4,9 @@ import shutil  # Import shutil for rmtree
 import tempfile
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Header
 from pydantic import BaseModel
 
 from src.analysis.orchestrator import AnalysisOrchestrator
@@ -149,12 +149,16 @@ async def generate_docs(analysis_result: CodeAnalysisResult):
 
 
 @router.post("/process", status_code=status.HTTP_202_ACCEPTED)
-async def process_repository(request: RepositoryAnalysisRequest):
+async def process_repository(
+    request: RepositoryAnalysisRequest,
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key")
+):
     """
     Initiates the full processing pipeline (analysis + generation) for a repository.
 
     Args:
         request (RepositoryAnalysisRequest): The request object containing the repository URL.
+        x_api_key (str, optional): The API Key provided by the user.
 
     Returns:
         dict: A dictionary containing the task ID for the processing job.
@@ -170,12 +174,13 @@ async def process_repository(request: RepositoryAnalysisRequest):
         "output_dir": None,
     }
 
-    asyncio.create_task(run_processing_in_background(task_id, request.url))
+    # Note: We allow None for x_api_key here; the agent will check env vars if not provided.
+    asyncio.create_task(run_processing_in_background(task_id, request.url, api_key=x_api_key))
 
     return {"task_id": task_id}
 
 
-async def run_processing_in_background(task_id: str, repo_url: str):
+async def run_processing_in_background(task_id: str, repo_url: str, api_key: Optional[str] = None):
     """
     Runs the full repository processing pipeline in a background task.
 
@@ -213,6 +218,7 @@ async def run_processing_in_background(task_id: str, repo_url: str):
             base_dir=Path(temp_input_dir),
             output_dir=Path("generated-docs"),
             write_to_disk=True,
+            api_key=api_key,
         )
 
         logger.info(

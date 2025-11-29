@@ -3,7 +3,7 @@
 import json
 import logging
 import os
-from typing import Union
+from typing import Union, Optional
 
 from agents import (
     Agent,
@@ -18,20 +18,7 @@ from src.models.doc_gen import DocSectionJob, GeneratedSection
 
 logger = logging.getLogger(__name__)
 
-gemini_api_key = os.getenv("GEMINI_API_KEY")
-
-if not gemini_api_key:
-    raise ValueError("GEMINI_API_KEY is not set. Please ensure it is defined in your .env file.")
-
-external_client = AsyncOpenAI(
-    api_key=gemini_api_key,
-    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-)
-
-model = OpenAIChatCompletionsModel(model="gemini-2.5-flash", openai_client=external_client)
-
-config = RunConfig(model=model, model_provider=external_client, trace_id=gen_trace_id())
-
+# Define the agent definition globally as instructions don't change
 doc_gen_agent = Agent(
     name="DocGenAgent",
     instructions=(
@@ -46,11 +33,29 @@ doc_gen_agent = Agent(
         "- Do not include conversational filler (e.g., 'Here is the README'). Start directly with the content.\n"
         "- If the context is insufficient, state clearly what is missing or infer reasonable defaults based on standard Python/Software practices."
     ),
-    # No output_type means we get raw text
 )
 
 
-async def generate_section(job: DocSectionJob, retry_count: int = 0) -> GeneratedSection:
+def get_client_config(api_key: Optional[str] = None) -> RunConfig:
+    """
+    Creates a RunConfig with a client using the provided API key or environment variable.
+    """
+    key_to_use = api_key or os.getenv("GEMINI_API_KEY")
+    
+    if not key_to_use:
+        raise ValueError("Gemini API Key is missing. Please provide it in settings or set GEMINI_API_KEY env var.")
+
+    external_client = AsyncOpenAI(
+        api_key=key_to_use,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+
+    model = OpenAIChatCompletionsModel(model="gemini-2.0-flash", openai_client=external_client)
+    
+    return RunConfig(model=model, model_provider=external_client, trace_id=gen_trace_id())
+
+
+async def generate_section(job: DocSectionJob, api_key: Optional[str] = None, retry_count: int = 0) -> GeneratedSection:
     """
     Constructs a prompt, calls the LLM via Runner.run, and returns the Markdown content.
     """
@@ -71,6 +76,9 @@ async def generate_section(job: DocSectionJob, retry_count: int = 0) -> Generate
     )
 
     try:
+        # Get config with dynamic key
+        config = get_client_config(api_key)
+        
         result = await Runner.run(doc_gen_agent, input=user_prompt, run_config=config)
         
         # The result.final_output should be a string for text-only agents
@@ -92,5 +100,5 @@ async def generate_section(job: DocSectionJob, retry_count: int = 0) -> Generate
         logger.error(f"Error generating section {job.section_name}: {e}")
         if retry_count < 1:
             logger.info("Retrying generation...")
-            return await generate_section(job, retry_count=1)
-        raise
+            return await generate_section(job, api_key, retry_count=1)
+        raise e # Re-raise after retry fails to ensure we catch it upstream

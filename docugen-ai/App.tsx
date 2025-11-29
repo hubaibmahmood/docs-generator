@@ -3,15 +3,27 @@ import InputSection from './components/InputSection';
 import Sidebar from './components/Sidebar';
 import DocViewer from './components/DocViewer';
 import LoginScreen from './components/LoginScreen';
+import Dashboard from './components/Dashboard';
+import Header from './components/Header';
+import SettingsScreen from './components/SettingsScreen';
 import { FileNode, GeneratedDoc, AnalysisStatus, FileType } from './types';
 import { apiService, transformFileTree, transformGeneratedDocs } from './services/apiService';
 
 function App() {
   // App State
-  const [step, setStep] = useState<'auth' | 'input' | 'workspace'>('auth');
+  const [step, setStep] = useState<'auth' | 'dashboard' | 'input' | 'settings' | 'workspace'>('auth');
   const [status, setStatus] = useState<AnalysisStatus>({ step: 'idle', message: '', progress: 0 });
   const [files, setFiles] = useState<FileNode[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("");
+  const [apiKey, setApiKey] = useState<string>("");
+
+  React.useEffect(() => {
+    const storedKey = localStorage.getItem("docugen_gemini_api_key");
+    if (storedKey) {
+      setApiKey(storedKey);
+    }
+  }, []);
   
   // Cache for generated docs
   const [docsCache, setDocsCache] = useState<Record<string, GeneratedDoc>>({});
@@ -19,15 +31,40 @@ function App() {
 
   // --- Actions ---
 
-  const handleLoginSuccess = () => {
-    setStep('input');
+  const handleLoginSuccess = (user: string) => {
+    setUserName(user);
+    setStep('dashboard');
+  };
+
+  const handleNavigate = (path: 'input' | 'settings') => {
+    setStep(path);
+  };
+
+  const handleLogout = () => {
+    setStep('auth');
+    setUserName("");
+    setFiles([]);
+    setDocsCache({});
+    setSelectedId(null);
+    setStatus({ step: 'idle', message: '', progress: 0 });
+  };
+
+  const handleBackToDashboard = () => {
+    setStep('dashboard');
+    // Optionally clear current analysis state if leaving workspace
+    if (step === 'workspace') {
+        setFiles([]);
+        setDocsCache({});
+        setSelectedId(null);
+        setStatus({ step: 'idle', message: '', progress: 0 });
+    }
   };
 
   const handleAnalyze = async (url: string) => {
     try {
       setStatus({ step: 'scanning', message: 'Connecting to API...', progress: 10 });
       
-      const taskId = await apiService.startProcessing(url);
+      const taskId = await apiService.startProcessing(url, apiKey);
       
       setStatus({ step: 'analyzing', message: 'Processing Repository...', progress: 30 });
 
@@ -119,28 +156,50 @@ function App() {
      setSelectedId(doc.id);
   };
 
-  const handleBackToInput = () => {
-    setStep('input');
-    setFiles([]);
-    setDocsCache({});
-    setSelectedId(null);
-    setStatus({ step: 'idle', message: '', progress: 0 });
-    window.location.hash = ''; // Clear the URL hash
-  };
-
   // --- Render ---
 
   if (step === 'auth') {
     return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
   }
 
+  if (step === 'dashboard') {
+    return (
+      <>
+        <Header userName={userName} onLogout={handleLogout} />
+        <Dashboard 
+            userName={userName}
+            onNavigate={handleNavigate} 
+            onLogout={handleLogout}
+        />
+      </>
+    );
+  }
+
+  if (step === 'settings') {
+    return (
+      <>
+        <Header userName={userName} onLogout={handleLogout} onBack={handleBackToDashboard} />
+        <SettingsScreen 
+            apiKey={apiKey} 
+            onSave={(key) => setApiKey(key)}
+        />
+      </>
+    );
+  }
+
   if (step === 'input') {
     return (
-      <InputSection 
-        onAnalyze={handleAnalyze} 
-        isAnalyzing={status.step !== 'idle' && status.step !== 'error'}
-        error={status.step === 'error' ? status.message : undefined}
-      />
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Header userName={userName} onLogout={handleLogout} onBack={handleBackToDashboard} />
+        <div className="flex-1 flex items-center justify-center">
+            <InputSection 
+                onAnalyze={handleAnalyze} 
+                isAnalyzing={status.step !== 'idle' && status.step !== 'error'}
+                error={status.step === 'error' ? status.message : undefined}
+                hasApiKey={!!apiKey}
+            />
+        </div>
+      </div>
     );
   }
 
@@ -158,7 +217,7 @@ function App() {
         onSelectFile={handleFileSelect} 
         onSelectSpecial={loadSpecialDoc}
         onSelectDoc={handleDocSelect}
-        onBack={handleBackToInput}
+        onBack={handleBackToDashboard}
         selectedId={selectedId}
       />
       
