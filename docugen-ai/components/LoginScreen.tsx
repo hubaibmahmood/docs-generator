@@ -274,12 +274,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
           <button
             type="button"
-            onClick={handleSocialLogin}
-            disabled={isLoading}
-            className="w-full bg-white text-slate-900 font-bold py-3 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-colors disabled:opacity-50"
+            disabled={true}
+            className="w-full bg-slate-100 text-slate-400 font-bold py-3 rounded-xl flex items-center justify-center gap-3 cursor-not-allowed border border-slate-700/30"
           >
-            <Github className="w-5 h-5" />
-            GitHub
+            <Github className="w-5 h-5 text-slate-500" />
+            GitHub (Coming Soon)
           </button>
         </div>
 
