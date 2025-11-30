@@ -72,7 +72,7 @@ class TestSecurityVectors:
     def test_valid_urls(self):
         """Ensure valid URLs are still allowed."""
         valid_urls = [
-            "https://github.com/hubaibmahmood/docugen-ai",
+            "https://github.com/hubaibmahmood/docgen-ai",
             "https://gitlab.com/user/project.git",
             "git@github.com:user/repo.git",
             "ssh://git@github.com/user/repo.git",

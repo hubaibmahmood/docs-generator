@@ -77,7 +77,7 @@ alembic upgrade head
 #### 3. Frontend Setup
 
 ```bash
-cd docugen-ai
+cd docgen-ai
 npm install # or yarn install
 cd ..
 ```
@@ -100,7 +100,7 @@ The backend API will be available at `http://localhost:8000`.
 From the project root directory:
 
 ```bash
-cd docugen-ai
+cd docgen-ai
 npm run dev # or yarn dev
 ```
 

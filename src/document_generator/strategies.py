@@ -104,7 +104,7 @@ class ArchitectureStrategy(DocumentationStrategy):
             # Heuristic: prioritize typical entry points or core logic
             if any(x in f.lower() for x in ["main", "app", "server", "config", "models", "routes"]) and count < 10:
                 if f in analysis.file_analysis and analysis.file_analysis[f].content:
-                    context += f"\n--- {f} ---\n{analysis.file_analysis[f].content[:2000]}\n"
+                    context += f"\n--- {f} ---\n{analysis.file_analysis[f].content[:4000]}\n"
                     count += 1
 
         return context
@@ -130,7 +130,7 @@ class ApiReferenceStrategy(DocumentationStrategy):
             if any(k in file_path.lower() for k in ["api", "route", "controller", "view"]):
                 relevant_content.append(f"File: {file_path}")
                 if file_data.content:
-                    relevant_content.append(f"Content:\n{file_data.content[:5000]}")
+                    relevant_content.append(f"Content:\n{file_data.content[:6000]}")
                 else:
                     relevant_content.append(self._format_elements(file_data.elements))
 
@@ -159,7 +159,7 @@ class DataModelsStrategy(DocumentationStrategy):
             if any(k in file_path.lower() for k in ["model", "schema", "entity", "dto"]):
                 relevant_content.append(f"File: {file_path}")
                 if file_data.content:
-                    relevant_content.append(f"Content:\n{file_data.content[:3000]}")
+                    relevant_content.append(f"Content:\n{file_data.content[:6000]}")
                 else:
                     relevant_content.append(self._format_elements(file_data.elements))
 
@@ -196,7 +196,7 @@ class GettingStartedStrategy(DocumentationStrategy):
                 found.append(f"Found {f}")
                 if file_data.content:
                     # Include content to help with specific instructions
-                    found.append(f"--- Content of {f} ---\n{file_data.content[:3000]}\n--- End of {f} ---")
+                    found.append(f"--- Content of {f} ---\n{file_data.content[:6000]}\n--- End of {f} ---")
 
         return "\n".join(found)
 

@@ -126,7 +126,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onApiKeyConfiguredChang
                     </button>
                   )}
 
-                  {isGeminiApiKeyConfigured && !isEditing && (
+                  {isGeminiApiKeyConfigured && !isEditing && !saved && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600 flex items-center text-sm font-medium">
                       <CheckCircle className="w-4 h-4 mr-1" /> Configured
                     </div>
